@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Defenders</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Utility & constants (load first — no dependencies) -->
+    <script src="js/utils.js"></script>
+
+    <!-- Core systems -->
+    <script src="js/grid.js"></script>
+    <script src="js/path.js"></script>
+    <script src="js/enemies.js"></script>
+    <script src="js/keyboard.js"></script>
+    <script src="js/progression.js"></script>
+
+    <!-- Game modes (placeholders for now) -->
+    <script src="js/modes/letterMarch.js"></script>
+    <script src="js/modes/keyboardDefense.js"></script>
+    <script src="js/modes/towerStrike.js"></script>
+
+    <!-- Engine (load last — depends on everything above) -->
+    <script src="js/engine.js"></script>
+</body>
+</html>
