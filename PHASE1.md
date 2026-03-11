@@ -131,3 +131,5 @@ When Phase 1 is done, opening index.html in a browser should show:
 6. Pressing a letter key highlights that key on the on-screen keyboard
 7. If the pressed letter matches an enemy, the enemy visually reacts
 8. The game runs smoothly at 60fps and fills the browser window
+
+## Status: Complete
