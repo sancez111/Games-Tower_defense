@@ -40,6 +40,37 @@
 
 ---
 
+## Phase 2a: Stopwatch + Best Times ← CURRENT
+**Goal**: Add competitive timer to drive replayability
+
+**Deliverables**:
+- Level stopwatch timer (runs during active gameplay, pauses when paused, stops between waves)
+- Best time tracking per level saved to localStorage
+- Best times displayed on level select, win screen, and game over screen
+- "NEW BEST!" celebration on beating a record
+
+**Status**: In progress
+
+---
+
+## Phase 2b: Enemy Variety + Level Layouts
+**Goal**: Add enemy types and unique path layouts to increase difficulty and variety
+
+**Deliverables**:
+- **Enemy types**:
+  - Walker (existing): Normal speed, 1 hit — green block
+  - Sprinter: Fast, 1 hit — blue block, smaller (introduced ~Level 3)
+  - Tank: Slow, 2 hits to destroy — red block, bigger (introduced ~Level 5)
+  - Swarm: Group of 3-4 small enemies, all same letter, 1 keypress destroys all — purple blocks (introduced ~Level 4)
+- Enemy type difficulty scales gradually across levels (early = all Walkers, later = mixed)
+- **Level-specific path layouts**: Each level can define its own path (long winding = easier, short direct = harder)
+- Expand from 5 to 10+ levels to cover top row letters (R, U, E, I, W, O, Q, P)
+- Wave definitions use enemy types: e.g., `{ letter: 'F', type: 'tank' }` or `{ letter: 'J', type: 'swarm' }`
+
+**Status**: Not started
+
+---
+
 ## Phase 3: Keyboard Defense Mode
 **Goal**: Second game mode focused on keyboard location learning
 
@@ -51,6 +82,25 @@
 - Finger guide overlay: shows which finger should press which key
 - Same wave and progression system as Letter March
 - Keyboard zones unlock progressively (home row → top row → bottom row)
+- Enemy types carry over from Letter March
+
+**Status**: Not started
+
+---
+
+## Phase 3.5: Gemini Graphics
+**Goal**: Replace placeholder colored blocks with proper Minecraft-style sprite art
+
+**Deliverables**:
+- Generate Minecraft-style pixel art sprites using Gemini AI for:
+  - Enemy types (Walker, Sprinter, Tank, Swarm) — front-facing block characters
+  - Castle/base building
+  - Cave entrance
+  - Tile textures (grass, dirt, stone, path)
+  - Heart and star icons
+  - Menu background elements
+- Integrate sprites into the game (replace fillRect drawing with sprite rendering)
+- Maintain blocky aesthetic — sprites should be low-res pixel art (16x16 or 32x32)
 
 **Status**: Not started
 
@@ -73,17 +123,15 @@
 ---
 
 ## Phase 5: Progression & Polish
-**Goal**: Full progression system and visual upgrade
+**Goal**: Full progression system and polish
 
 **Deliverables**:
 - Level map (world select screen, Minecraft biome themed)
-- Star rating per level (1-3 stars based on performance)
 - Letter mastery tracking (which letters the child knows well)
 - Adaptive difficulty: focuses on letters the child struggles with
 - Unlockable content: new tower skins, enemy skins, backgrounds
-- **Gemini-generated Minecraft-style sprite assets** replace all placeholders
 - Smooth animations for all game actions
-- Particle effects (block explosions, sparkles, etc.)
+- Additional particle effects (sparkles, etc.)
 
 **Status**: Not started
 
