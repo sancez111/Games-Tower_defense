@@ -6,94 +6,114 @@ const Enemies = {
     list: [],
     spawnTimer: 0,
     spawnQueue: [],
-    lettersToSpawn: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-    spawnIndex: 0,
+    currentSpeed: 0.03,
+    currentInterval: 3,
+
+    // Track when enemy list changes for keyboard highlight optimization
+    listChanged: false,
 
     init() {
         this.list = [];
         this.spawnTimer = 0;
-        this.spawnIndex = 0;
-        // Start with a batch of test letters
-        this.spawnQueue = ['F', 'J', 'D', 'K', 'S', 'L', 'A'];
+        this.spawnQueue = [];
+        this.currentSpeed = 0.03;
+        this.currentInterval = 3;
+        this.listChanged = true;
     },
 
-    // Create a new enemy with a given letter
+    // Set the wave's spawn queue and parameters
+    loadWave(enemies, spawnInterval, enemySpeed) {
+        this.spawnQueue = enemies.slice();
+        this.currentInterval = spawnInterval;
+        this.currentSpeed = enemySpeed;
+        this.spawnTimer = 0;
+    },
+
     spawn(letter) {
         this.list.push({
             letter: letter.toUpperCase(),
             pathProgress: 0,
-            speed: CONFIG.ENEMY_SPEED,
+            speed: this.currentSpeed,
             x: 0,
             y: 0,
             alive: true,
-            flash: null,         // flash animation when hit
+            flash: null,
             bodyColor: COLORS.ENEMY_BODY,
-            size: 1,             // scale multiplier
-            bobOffset: Math.random() * Math.PI * 2, // for walking bob animation
+            size: 1,
+            bobOffset: Math.random() * Math.PI * 2,
         });
+        this.listChanged = true;
     },
 
-    // Update all enemies
     update(dt, time) {
         // Spawn timer
         this.spawnTimer += dt;
-        if (this.spawnTimer >= CONFIG.SPAWN_INTERVAL && this.spawnQueue.length > 0) {
+        if (this.spawnTimer >= this.currentInterval && this.spawnQueue.length > 0) {
             this.spawnTimer = 0;
             this.spawn(this.spawnQueue.shift());
-        }
-
-        // Re-queue enemies if all spawned and list is empty
-        if (this.spawnQueue.length === 0 && this.list.length === 0) {
-            this.spawnQueue = ['F', 'J', 'D', 'K', 'S', 'L', 'A'];
         }
 
         // Update each enemy
         for (let i = this.list.length - 1; i >= 0; i--) {
             const enemy = this.list[i];
 
-            // Move along path
             enemy.pathProgress += enemy.speed * dt;
 
-            // Get pixel position from path
             const pos = Path.getPositionAt(enemy.pathProgress);
             enemy.x = pos.x;
             enemy.y = pos.y;
 
-            // Update flash animation if active
+            // Update flash animation
             if (enemy.flash) {
                 enemy.flash.update(dt);
                 if (!enemy.flash.active) {
                     enemy.flash = null;
                     if (!enemy.alive) {
                         this.list.splice(i, 1);
+                        this.listChanged = true;
                         continue;
                     }
                 }
             }
 
-            // Remove if reached end of path
-            if (enemy.pathProgress >= 1) {
+            // Reached end of path
+            if (enemy.pathProgress >= 1 && enemy.alive) {
+                enemy.alive = false;
                 this.list.splice(i, 1);
+                this.listChanged = true;
+
+                // Signal to game that enemy reached base
+                if (typeof LetterMarch !== 'undefined' && LetterMarch.onEnemyReachedBase) {
+                    LetterMarch.onEnemyReachedBase(enemy);
+                }
             }
         }
     },
 
-    // Check if a letter matches any enemy, and handle the hit
+    // Returns the enemy if hit, or null
     tryHitLetter(letter) {
         letter = letter.toUpperCase();
         for (let i = 0; i < this.list.length; i++) {
             const enemy = this.list[i];
             if (enemy.letter === letter && enemy.alive) {
-                // Hit! Start flash animation then remove
                 enemy.alive = false;
-                enemy.flash = createFlash(0.4);
-                return true;
+                // Spawn particles instead of white flash
+                Particles.spawn(enemy.x, enemy.y, enemy.bodyColor, 8);
+                // Remove immediately (no flash delay for particles)
+                const hitEnemy = { ...enemy };
+                this.list.splice(i, 1);
+                this.listChanged = true;
+                return hitEnemy;
             }
         }
-        return false;
+        return null;
     },
 
-    // Render all enemies
+    // Check if wave is complete (no enemies left and no more to spawn)
+    isWaveComplete() {
+        return this.spawnQueue.length === 0 && this.list.length === 0;
+    },
+
     render(ctx, time) {
         const ts = Grid.tileSize;
         const enemySize = ts * 0.8;
@@ -101,23 +121,17 @@ const Enemies = {
         for (let i = 0; i < this.list.length; i++) {
             const enemy = this.list[i];
             const halfSize = enemySize / 2;
-
-            // Walking bob animation
             const bob = Math.sin(time * 6 + enemy.bobOffset) * 3;
-
             const ex = enemy.x - halfSize;
             const ey = enemy.y - enemySize + bob;
 
-            // Flash effect (white blink when hit)
             if (enemy.flash && enemy.flash.active) {
                 const flashAlpha = 1 - enemy.flash.progress;
-                // Expand and fade
                 const scale = 1 + enemy.flash.progress * 0.5;
                 const sx = enemy.x - halfSize * scale;
                 const sy = enemy.y - enemySize * scale + bob;
                 const sw = enemySize * scale;
                 const sh = enemySize * scale;
-
                 ctx.globalAlpha = flashAlpha;
                 ctx.fillStyle = COLORS.WHITE;
                 ctx.fillRect(sx, sy, sw, sh);
@@ -125,31 +139,31 @@ const Enemies = {
                 continue;
             }
 
-            // Body (square block)
+            // Body
             ctx.fillStyle = enemy.bodyColor;
             ctx.fillRect(ex, ey, enemySize, enemySize);
 
-            // Darker outline
+            // Outline
             ctx.fillStyle = COLORS.ENEMY_DARK;
             ctx.fillRect(ex, ey, enemySize, 3);
             ctx.fillRect(ex, ey, 3, enemySize);
             ctx.fillRect(ex + enemySize - 3, ey, 3, enemySize);
             ctx.fillRect(ex, ey + enemySize - 3, enemySize, 3);
 
-            // Eyes (two small dark squares)
+            // Eyes
             const eyeSize = Math.max(3, enemySize * 0.12);
             const eyeY = ey + enemySize * 0.22;
             ctx.fillStyle = COLORS.ENEMY_EYES;
             ctx.fillRect(ex + enemySize * 0.25, eyeY, eyeSize, eyeSize);
             ctx.fillRect(ex + enemySize * 0.63, eyeY, eyeSize, eyeSize);
 
-            // Letter on body (large, centered)
+            // Letter
             const letterSize = Math.max(12, enemySize * 0.45);
             drawText(ctx, enemy.letter,
                 enemy.x, ey + enemySize * 0.65,
                 letterSize, COLORS.ENEMY_LETTER, 'center', 1);
 
-            // Small feet (two blocks below body)
+            // Feet
             const footW = enemySize * 0.25;
             const footH = enemySize * 0.15;
             ctx.fillStyle = COLORS.ENEMY_DARK;

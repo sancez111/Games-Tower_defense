@@ -9,10 +9,13 @@ const Grid = {
     offsetX: 0,
     offsetY: 0,
     tiles: [],
-    // Pre-generated noise for tile textures
     textureNoise: [],
 
-    // Initialize grid with default grass tiles
+    // Off-screen cache
+    cacheCanvas: null,
+    cacheCtx: null,
+    cacheDirty: true,
+
     init() {
         this.tiles = [];
         this.textureNoise = [];
@@ -20,13 +23,11 @@ const Grid = {
             this.tiles[r] = [];
             this.textureNoise[r] = [];
             for (let c = 0; c < this.cols; c++) {
-                // Default: bottom 2 rows are dirt, rest is grass
                 if (r >= this.rows - 2) {
                     this.tiles[r][c] = TILES.DIRT;
                 } else {
                     this.tiles[r][c] = TILES.GRASS;
                 }
-                // Generate random texture pixels for each tile
                 this.textureNoise[r][c] = [];
                 for (let i = 0; i < 6; i++) {
                     this.textureNoise[r][c].push({
@@ -38,26 +39,25 @@ const Grid = {
                 }
             }
         }
+        this.cacheDirty = true;
     },
 
-    // Set a tile type at given grid coordinates
     setTile(col, row, type) {
         if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
             this.tiles[row][col] = type;
+            this.cacheDirty = true;
         }
     },
 
-    // Calculate tile size and offsets based on canvas size
     resize(canvasWidth, gameAreaHeight) {
         const tileW = canvasWidth / this.cols;
         const tileH = gameAreaHeight / this.rows;
         this.tileSize = Math.floor(Math.min(tileW, tileH));
-        // Center the grid horizontally
         this.offsetX = Math.floor((canvasWidth - this.tileSize * this.cols) / 2);
         this.offsetY = 0;
+        this.cacheDirty = true;
     },
 
-    // Convert grid coordinates to pixel coordinates (top-left of tile)
     gridToPixel(col, row) {
         return {
             x: this.offsetX + col * this.tileSize,
@@ -65,7 +65,6 @@ const Grid = {
         };
     },
 
-    // Convert pixel coordinates to grid coordinates
     pixelToGrid(px, py) {
         return {
             col: Math.floor((px - this.offsetX) / this.tileSize),
@@ -73,7 +72,6 @@ const Grid = {
         };
     },
 
-    // Get the base color for a tile type
     getTileColor(type) {
         switch (type) {
             case TILES.GRASS: return COLORS.GRASS_DARK;
@@ -86,7 +84,6 @@ const Grid = {
         }
     },
 
-    // Get the lighter accent color for a tile type
     getTileAccent(type) {
         switch (type) {
             case TILES.GRASS: return COLORS.GRASS_LIGHT;
@@ -99,8 +96,16 @@ const Grid = {
         }
     },
 
-    // Render the entire grid
-    render(ctx, time) {
+    // Rebuild the off-screen cache
+    rebuildCache(gameAreaWidth, gameAreaHeight) {
+        if (!this.cacheCanvas) {
+            this.cacheCanvas = document.createElement('canvas');
+            this.cacheCtx = this.cacheCanvas.getContext('2d');
+        }
+        this.cacheCanvas.width = gameAreaWidth;
+        this.cacheCanvas.height = gameAreaHeight;
+        const ctx = this.cacheCtx;
+
         const ts = this.tileSize;
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
@@ -110,11 +115,9 @@ const Grid = {
                 const baseColor = this.getTileColor(type);
                 const accentColor = this.getTileAccent(type);
 
-                // Draw base tile
                 ctx.fillStyle = baseColor;
                 ctx.fillRect(px, py, ts, ts);
 
-                // Draw texture noise (pixel-art detail)
                 const noise = this.textureNoise[r][c];
                 ctx.fillStyle = accentColor;
                 for (let i = 0; i < noise.length; i++) {
@@ -125,30 +128,30 @@ const Grid = {
                     ctx.fillRect(Math.floor(npx), Math.floor(npy), Math.floor(ns), Math.floor(ns));
                 }
 
-                // Water animation: shimmer effect
-                if (type === TILES.WATER) {
-                    const shimmer = Math.sin(time * 3 + c * 0.5 + r * 0.3) * 0.5 + 0.5;
-                    ctx.fillStyle = 'rgba(255, 255, 255, ' + (shimmer * 0.15) + ')';
-                    ctx.fillRect(px, py, ts, ts);
-                }
-
-                // Path edge darkening for depth
                 if (type === TILES.PATH) {
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                    // Top edge
                     ctx.fillRect(px, py, ts, 2);
-                    // Left edge
                     ctx.fillRect(px, py, 2, ts);
-                    // Bottom highlight
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
                     ctx.fillRect(px, py + ts - 2, ts, 2);
                 }
 
-                // Subtle grid lines
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(px + 0.5, py + 0.5, ts - 1, ts - 1);
             }
         }
+        this.cacheDirty = false;
+    },
+
+    render(ctx, time) {
+        const gameW = ctx.canvas.width;
+        const gameH = ctx.canvas.height * CONFIG.GAME_AREA_RATIO;
+
+        if (this.cacheDirty) {
+            this.rebuildCache(gameW, gameH);
+        }
+
+        ctx.drawImage(this.cacheCanvas, 0, 0);
     }
 };

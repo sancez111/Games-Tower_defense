@@ -51,6 +51,14 @@ const COLORS = {
     // Cave
     CAVE_DARK: '#1A1A1A',
     CAVE_FRAME: '#555555',
+    // HUD
+    HEART_RED: '#CC2222',
+    HEART_DARK: '#881111',
+    STAR_YELLOW: '#FFD700',
+    STAR_DARK: '#CC9900',
+    SCORE_COLOR: '#FFD700',
+    COMBO_COLOR: '#FF6600',
+    WAVE_COLOR: '#FFFFFF',
 };
 
 // Game configuration
@@ -59,18 +67,21 @@ const CONFIG = {
     GRID_ROWS: 12,
     TARGET_FPS: 60,
     ASPECT_RATIO: 16 / 9,
-    KEYBOARD_HEIGHT_RATIO: 0.22,  // keyboard takes 22% of canvas height
-    GAME_AREA_RATIO: 0.78,       // game area takes 78%
-    ENEMY_SPEED: 0.03,           // path progress per second
-    SPAWN_INTERVAL: 3,           // seconds between spawns
+    KEYBOARD_HEIGHT_RATIO: 0.22,
+    GAME_AREA_RATIO: 0.78,
+    ENEMY_SPEED: 0.03,
+    SPAWN_INTERVAL: 3,
     FONT_FAMILY: '"Press Start 2P", monospace',
+    MAX_HEARTS: 5,
 };
 
 // Game states
 const STATES = {
     MENU: 'MENU',
+    LEVEL_SELECT: 'LEVEL_SELECT',
     PLAYING: 'PLAYING',
     PAUSED: 'PAUSED',
+    WAVE_INTRO: 'WAVE_INTRO',
     GAME_OVER: 'GAME_OVER',
     WIN: 'WIN',
 };
@@ -87,51 +98,41 @@ const TILES = {
 
 // --- Helper Functions ---
 
-// Random integer between min (inclusive) and max (inclusive)
 function randInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Random float between min and max
 function randFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
 
-// Point-in-rectangle collision
 function pointInRect(px, py, rx, ry, rw, rh) {
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
 }
 
-// Draw text with drop shadow (Minecraft style)
 function drawText(ctx, text, x, y, size, color, align, shadowOffset) {
     shadowOffset = shadowOffset || 2;
     ctx.font = size + 'px ' + CONFIG.FONT_FAMILY;
     ctx.textAlign = align || 'center';
     ctx.textBaseline = 'middle';
-    // Shadow
     ctx.fillStyle = COLORS.SHADOW;
     ctx.fillText(text, x + shadowOffset, y + shadowOffset);
-    // Main text
     ctx.fillStyle = color || COLORS.WHITE;
     ctx.fillText(text, x, y);
 }
 
-// Linear interpolation
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
-// Clamp value between min and max
 function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
 }
 
-// Ease out quad
 function easeOutQuad(t) {
     return t * (2 - t);
 }
 
-// Ease in out quad
 function easeInOutQuad(t) {
     return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
@@ -182,4 +183,192 @@ function createFlash(duration) {
             }
         }
     };
+}
+
+// ============================================
+// Particle System
+// ============================================
+const Particles = {
+    list: [],
+
+    spawn(x, y, color, count) {
+        count = count || 8;
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + randFloat(-0.3, 0.3);
+            const speed = randFloat(80, 200);
+            this.list.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - randFloat(50, 120),
+                size: randFloat(3, 7),
+                color: color,
+                life: 0.5,
+                maxLife: 0.5,
+                gravity: 400,
+            });
+        }
+    },
+
+    update(dt) {
+        for (let i = this.list.length - 1; i >= 0; i--) {
+            const p = this.list[i];
+            p.vy += p.gravity * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            if (p.life <= 0) {
+                this.list.splice(i, 1);
+            }
+        }
+    },
+
+    render(ctx) {
+        for (let i = 0; i < this.list.length; i++) {
+            const p = this.list[i];
+            const alpha = clamp(p.life / p.maxLife, 0, 1);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+    },
+
+    clear() {
+        this.list = [];
+    }
+};
+
+// ============================================
+// Floating Text System
+// ============================================
+const FloatingTexts = {
+    list: [],
+
+    spawn(x, y, text, color, size) {
+        this.list.push({
+            x: x,
+            y: y,
+            text: text,
+            color: color || COLORS.SCORE_COLOR,
+            size: size || 14,
+            life: 1.0,
+            maxLife: 1.0,
+            vy: -60,
+        });
+    },
+
+    update(dt) {
+        for (let i = this.list.length - 1; i >= 0; i--) {
+            const t = this.list[i];
+            t.y += t.vy * dt;
+            t.life -= dt;
+            if (t.life <= 0) {
+                this.list.splice(i, 1);
+            }
+        }
+    },
+
+    render(ctx) {
+        for (let i = 0; i < this.list.length; i++) {
+            const t = this.list[i];
+            const alpha = clamp(t.life / t.maxLife, 0, 1);
+            ctx.globalAlpha = alpha;
+            const scale = 1 + (1 - alpha) * 0.3;
+            drawText(ctx, t.text, t.x, t.y, t.size * scale, t.color, 'center', 2);
+        }
+        ctx.globalAlpha = 1;
+    },
+
+    clear() {
+        this.list = [];
+    }
+};
+
+// ============================================
+// Draw blocky Minecraft-style heart
+// ============================================
+function drawHeart(ctx, x, y, size, filled) {
+    const s = size / 8;
+    ctx.fillStyle = filled ? COLORS.HEART_RED : '#333333';
+    // Row 0 (top) - two bumps
+    ctx.fillRect(x + s, y, s * 2, s);
+    ctx.fillRect(x + s * 5, y, s * 2, s);
+    // Row 1
+    ctx.fillRect(x, y + s, s * 8, s);
+    // Row 2
+    ctx.fillRect(x, y + s * 2, s * 8, s);
+    // Row 3
+    ctx.fillRect(x + s, y + s * 3, s * 6, s);
+    // Row 4
+    ctx.fillRect(x + s * 2, y + s * 4, s * 4, s);
+    // Row 5 (bottom point)
+    ctx.fillRect(x + s * 3, y + s * 5, s * 2, s);
+
+    // Highlight
+    if (filled) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(x + s, y, s, s);
+        ctx.fillRect(x, y + s, s, s);
+    }
+    // Dark edge
+    ctx.fillStyle = filled ? COLORS.HEART_DARK : '#222222';
+    ctx.fillRect(x + s * 3, y + s * 5, s * 2, s);
+    if (filled) {
+        ctx.fillRect(x + s * 6, y + s, s * 2, s);
+    }
+}
+
+// ============================================
+// Draw blocky Minecraft-style star
+// ============================================
+function drawStar(ctx, cx, cy, size, filled) {
+    const s = size / 10;
+    ctx.fillStyle = filled ? COLORS.STAR_YELLOW : '#444444';
+    // Build star pixel by pixel (blocky 5-point star)
+    // Center column top
+    ctx.fillRect(cx - s, cy - s * 5, s * 2, s * 2);
+    // Top spread
+    ctx.fillRect(cx - s * 2, cy - s * 3, s * 4, s);
+    ctx.fillRect(cx - s * 3, cy - s * 2, s * 6, s);
+    // Wide middle bar
+    ctx.fillRect(cx - s * 5, cy - s, s * 10, s * 2);
+    // Lower middle
+    ctx.fillRect(cx - s * 4, cy + s, s * 8, s);
+    ctx.fillRect(cx - s * 3, cy + s * 2, s * 6, s);
+    // Two legs
+    ctx.fillRect(cx - s * 3, cy + s * 3, s * 2, s);
+    ctx.fillRect(cx + s, cy + s * 3, s * 2, s);
+    ctx.fillRect(cx - s * 4, cy + s * 4, s * 2, s);
+    ctx.fillRect(cx + s * 2, cy + s * 4, s * 2, s);
+
+    if (filled) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(cx - s, cy - s * 5, s, s);
+        ctx.fillRect(cx - s * 5, cy - s, s * 2, s);
+    }
+}
+
+// ============================================
+// Draw a button (returns the button rect for hit testing)
+// ============================================
+function drawButton(ctx, text, x, y, w, h, mouseX, mouseY, fontSize) {
+    const isHover = pointInRect(mouseX, mouseY, x, y, w, h);
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(x + 3, y + 3, w, h);
+    // Background
+    ctx.fillStyle = isHover ? COLORS.MENU_BUTTON_HOVER : COLORS.MENU_BUTTON;
+    ctx.fillRect(x, y, w, h);
+    // Border
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(x, y, w, h * 0.3);
+    // Text
+    fontSize = fontSize || Math.max(10, h * 0.35);
+    drawText(ctx, text, x + w / 2, y + h / 2, fontSize, COLORS.WHITE, 'center', 1);
+    return { x, y, w, h };
 }

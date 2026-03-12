@@ -19,7 +19,7 @@
 
 ---
 
-## Phase 2: Letter March Mode ← CURRENT
+## Phase 2: Letter March Mode ← COMPLETE
 **Goal**: First fully playable game mode + Phase 1 performance fixes
 
 **Deliverables**:
@@ -36,7 +36,7 @@
 - Scoring with combo system and floating text feedback
 - Progress saved in browser (localStorage)
 
-**Status**: In progress — see PHASE2.md for detailed plan
+**Status**: Complete
 
 ---
 

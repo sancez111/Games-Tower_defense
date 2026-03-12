@@ -55,4 +55,4 @@ A Minecraft-style tower defense learning game for young children (age 5+) to rec
 - **Graphics** (later): Gemini AI generates Minecraft-style sprite assets
 
 ## Current Status
-**Phase 1 — Foundation** (Complete)
+**Phase 2 — Letter March Mode** (Complete)

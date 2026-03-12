@@ -3,18 +3,20 @@
 // ============================================
 
 const Keyboard = {
-    // QWERTY layout rows
     rows: [
         ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
         ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
         ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
     ],
 
-    keys: {},       // Map of letter -> key object
+    keys: {},
     keyWidth: 0,
     keyHeight: 0,
     startY: 0,
     gap: 0,
+
+    // Dirty flag for highlight optimization
+    _lastHighlightKey: '',
 
     init() {
         this.keys = {};
@@ -25,7 +27,7 @@ const Keyboard = {
                     letter: letter,
                     row: r,
                     col: c,
-                    state: 'NORMAL',  // NORMAL, HIGHLIGHTED, CORRECT, WRONG
+                    state: 'NORMAL',
                     flash: null,
                     x: 0,
                     y: 0,
@@ -34,21 +36,19 @@ const Keyboard = {
                 };
             }
         }
+        this._lastHighlightKey = '';
     },
 
-    // Recalculate key positions based on canvas size
     resize(canvasWidth, canvasHeight) {
         const kbHeight = canvasHeight * CONFIG.KEYBOARD_HEIGHT_RATIO;
         this.startY = canvasHeight - kbHeight;
         this.gap = Math.max(2, canvasWidth * 0.005);
         const padding = canvasWidth * 0.02;
 
-        // Calculate key size based on widest row (10 keys)
         const maxKeys = 10;
         this.keyWidth = Math.floor((canvasWidth - padding * 2 - this.gap * (maxKeys - 1)) / maxKeys);
         this.keyHeight = Math.floor((kbHeight - this.gap * 4) / 3.5);
 
-        // Position each key
         for (let r = 0; r < this.rows.length; r++) {
             const rowKeys = this.rows[r].length;
             const rowWidth = rowKeys * this.keyWidth + (rowKeys - 1) * this.gap;
@@ -66,7 +66,6 @@ const Keyboard = {
         }
     },
 
-    // Flash a key with a given state (CORRECT or WRONG)
     flashKey(letter, state) {
         letter = letter.toUpperCase();
         const key = this.keys[letter];
@@ -75,15 +74,17 @@ const Keyboard = {
         key.flash = createFlash(0.4);
     },
 
-    // Highlight specific keys (for teaching)
+    // Optimized: only update highlights when active letters change
     highlightKeys(letters) {
-        // Reset all to normal first
+        const sorted = letters.slice().sort().join(',');
+        if (sorted === this._lastHighlightKey) return;
+        this._lastHighlightKey = sorted;
+
         for (const l in this.keys) {
             if (this.keys[l].state === 'HIGHLIGHTED') {
                 this.keys[l].state = 'NORMAL';
             }
         }
-        // Set highlights
         for (let i = 0; i < letters.length; i++) {
             const key = this.keys[letters[i].toUpperCase()];
             if (key && key.state === 'NORMAL') {
@@ -92,7 +93,6 @@ const Keyboard = {
         }
     },
 
-    // Update flash animations
     update(dt) {
         for (const l in this.keys) {
             const key = this.keys[l];
@@ -106,7 +106,6 @@ const Keyboard = {
         }
     },
 
-    // Get the color for a key based on its state
     getKeyColor(state) {
         switch (state) {
             case 'HIGHLIGHTED': return COLORS.KEY_HIGHLIGHT;
@@ -116,9 +115,7 @@ const Keyboard = {
         }
     },
 
-    // Render the keyboard
     render(ctx) {
-        // Keyboard background
         ctx.fillStyle = 'rgba(30, 30, 30, 0.85)';
         ctx.fillRect(0, this.startY, ctx.canvas.width, ctx.canvas.height - this.startY);
 
@@ -127,24 +124,19 @@ const Keyboard = {
             const color = this.getKeyColor(key.state);
             const radius = Math.max(2, this.keyWidth * 0.1);
 
-            // Key shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             this.drawRoundedRect(ctx, key.x + 2, key.y + 2, key.w, key.h, radius);
 
-            // Key body
             ctx.fillStyle = color;
             this.drawRoundedRect(ctx, key.x, key.y, key.w, key.h, radius);
 
-            // Key border
             ctx.strokeStyle = COLORS.KEY_BORDER;
             ctx.lineWidth = 1;
             this.strokeRoundedRect(ctx, key.x, key.y, key.w, key.h, radius);
 
-            // Key top highlight
             ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
             this.drawRoundedRect(ctx, key.x + 2, key.y + 2, key.w - 4, key.h * 0.4, radius);
 
-            // Letter text
             const fontSize = Math.max(10, this.keyHeight * 0.4);
             drawText(ctx, key.letter,
                 key.x + key.w / 2, key.y + key.h / 2,
@@ -152,7 +144,6 @@ const Keyboard = {
         }
     },
 
-    // Draw a rounded rectangle (filled)
     drawRoundedRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -168,7 +159,6 @@ const Keyboard = {
         ctx.fill();
     },
 
-    // Stroke a rounded rectangle
     strokeRoundedRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -184,7 +174,6 @@ const Keyboard = {
         ctx.stroke();
     },
 
-    // Check if a click/tap hit a key
     getKeyAt(px, py) {
         for (const l in this.keys) {
             const key = this.keys[l];

@@ -7,47 +7,51 @@ const Game = {
     ctx: null,
     state: STATES.MENU,
     lastTime: 0,
-    time: 0,        // total elapsed time in seconds
+    time: 0,
     width: 0,
     height: 0,
 
+    // Cached sky gradient
+    _skyGradient: null,
+    _skyGradientH: 0,
+
     // Input state
     input: {
-        keysPressed: {},    // keys pressed this frame
-        keysDown: {},       // keys currently held
+        keysPressed: {},
+        keysDown: {},
         mouseX: 0,
         mouseY: 0,
         mouseClicked: false,
         mouseDown: false,
     },
 
-    // Menu button definitions (calculated on resize)
+    // Menu button definitions
     menuButtons: [],
 
-    // Initialize the game
+    // Level select buttons
+    levelButtons: [],
+
+    // Overlay buttons (win/lose/pause screens)
+    overlayButtons: [],
+
     init() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
 
-        // Setup input handlers
         this.setupInput();
 
-        // Initialize systems (must happen before first resize)
         Grid.init();
         Path.init();
         Keyboard.init();
         Enemies.init();
 
-        // Initial resize
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
-        // Start game loop
         this.lastTime = performance.now();
         requestAnimationFrame((t) => this.loop(t));
     },
 
-    // Setup keyboard and mouse input
     setupInput() {
         // Keyboard
         document.addEventListener('keydown', (e) => {
@@ -56,9 +60,8 @@ const Game = {
                 this.input.keysPressed[key] = true;
                 this.input.keysDown[key] = true;
             }
-            // Pause toggle
             if (e.key === 'Escape') {
-                if (this.state === STATES.PLAYING) {
+                if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
                     this.state = STATES.PAUSED;
                 } else if (this.state === STATES.PAUSED) {
                     this.state = STATES.PLAYING;
@@ -71,11 +74,12 @@ const Game = {
             delete this.input.keysDown[key];
         });
 
-        // Mouse / Touch
+        // Mouse
         this.canvas.addEventListener('mousedown', (e) => {
             this.input.mouseDown = true;
             this.input.mouseClicked = true;
             this.updateMousePos(e);
+            this.handleTouchKeyboard(this.input.mouseX, this.input.mouseY);
         });
 
         this.canvas.addEventListener('mouseup', () => {
@@ -86,13 +90,14 @@ const Game = {
             this.updateMousePos(e);
         });
 
-        // Touch support
+        // Touch
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
             this.input.mouseDown = true;
             this.input.mouseClicked = true;
             this.updateMousePos(touch);
+            this.handleTouchKeyboard(this.input.mouseX, this.input.mouseY);
         });
 
         this.canvas.addEventListener('touchend', (e) => {
@@ -101,18 +106,25 @@ const Game = {
         });
     },
 
-    // Convert page coordinates to canvas coordinates
+    // Touch-to-keyboard: check if tap lands on a keyboard key
+    handleTouchKeyboard(x, y) {
+        if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
+            const letter = Keyboard.getKeyAt(x, y);
+            if (letter) {
+                this.input.keysPressed[letter] = true;
+            }
+        }
+    },
+
     updateMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
         this.input.mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
         this.input.mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
     },
 
-    // Handle canvas resize
     resize() {
         const w = window.innerWidth;
         const h = window.innerHeight;
-        // Maintain aspect ratio
         let cw = w;
         let ch = w / CONFIG.ASPECT_RATIO;
         if (ch > h) {
@@ -126,14 +138,23 @@ const Game = {
         this.width = this.canvas.width;
         this.height = this.canvas.height;
 
-        // Resize subsystems
         const gameAreaHeight = this.height * CONFIG.GAME_AREA_RATIO;
         Grid.resize(this.width, gameAreaHeight);
         Keyboard.resize(this.width, this.height);
         this.buildMenuButtons();
+        this.buildLevelButtons();
+        this.cacheSkyGradient();
     },
 
-    // Build menu button hit areas
+    // Cache sky gradient — recreate only on resize
+    cacheSkyGradient() {
+        const gameH = this.height * CONFIG.GAME_AREA_RATIO;
+        this._skyGradient = this.ctx.createLinearGradient(0, 0, 0, gameH);
+        this._skyGradient.addColorStop(0, COLORS.SKY_TOP);
+        this._skyGradient.addColorStop(1, COLORS.SKY_BOTTOM);
+        this._skyGradientH = gameH;
+    },
+
     buildMenuButtons() {
         const cx = this.width / 2;
         const btnW = Math.min(300, this.width * 0.4);
@@ -148,23 +169,41 @@ const Game = {
         ];
     },
 
+    buildLevelButtons() {
+        const cx = this.width / 2;
+        const btnSize = Math.min(100, this.width * 0.12);
+        const gap = btnSize * 0.3;
+        const totalW = LEVELS.length * btnSize + (LEVELS.length - 1) * gap;
+        const startX = cx - totalW / 2;
+        const startY = this.height * 0.4;
+
+        this.levelButtons = [];
+        for (let i = 0; i < LEVELS.length; i++) {
+            this.levelButtons.push({
+                index: i,
+                x: startX + i * (btnSize + gap),
+                y: startY,
+                w: btnSize,
+                h: btnSize * 1.3,
+            });
+        }
+    },
+
     // Main game loop
     loop(timestamp) {
-        const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05); // cap at 50ms
+        const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
         this.lastTime = timestamp;
         this.time += dt;
 
         this.update(dt);
         this.render();
 
-        // Clear single-frame input
         this.input.keysPressed = {};
         this.input.mouseClicked = false;
 
         requestAnimationFrame((t) => this.loop(t));
     },
 
-    // Update game state
     update(dt) {
         ScreenShake.update(dt);
 
@@ -172,58 +211,121 @@ const Game = {
             case STATES.MENU:
                 this.updateMenu();
                 break;
+            case STATES.LEVEL_SELECT:
+                this.updateLevelSelect();
+                break;
             case STATES.PLAYING:
+            case STATES.WAVE_INTRO:
                 this.updatePlaying(dt);
                 break;
             case STATES.PAUSED:
-                // Nothing to update while paused
+                this.updatePaused();
+                break;
+            case STATES.GAME_OVER:
+                this.updateGameOver();
+                break;
+            case STATES.WIN:
+                this.updateWin();
                 break;
         }
     },
 
-    // Menu update — check button clicks
     updateMenu() {
         if (this.input.mouseClicked) {
             for (let i = 0; i < this.menuButtons.length; i++) {
                 const btn = this.menuButtons[i];
                 if (btn.active && pointInRect(this.input.mouseX, this.input.mouseY, btn.x, btn.y, btn.w, btn.h)) {
-                    this.startGame();
+                    this.state = STATES.LEVEL_SELECT;
                     break;
                 }
             }
         }
     },
 
-    // Start the game
-    startGame() {
-        this.state = STATES.PLAYING;
-        Grid.init();
-        Path.init();
-        Enemies.init();
+    updateLevelSelect() {
+        if (this.input.mouseClicked) {
+            // Back button
+            if (this._backBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._backBtn.x, this._backBtn.y, this._backBtn.w, this._backBtn.h)) {
+                this.state = STATES.MENU;
+                return;
+            }
+
+            for (let i = 0; i < this.levelButtons.length; i++) {
+                const btn = this.levelButtons[i];
+                if (Progression.isLevelUnlocked(btn.index) &&
+                    pointInRect(this.input.mouseX, this.input.mouseY, btn.x, btn.y, btn.w, btn.h)) {
+                    this.startLevel(btn.index);
+                    break;
+                }
+            }
+        }
     },
 
-    // Playing state update
+    startLevel(levelIndex) {
+        this.state = STATES.WAVE_INTRO;
+        LetterMarch.init(levelIndex);
+    },
+
     updatePlaying(dt) {
         // Process keyboard input
         for (const key in this.input.keysPressed) {
-            // Flash the key on the on-screen keyboard
-            const hit = Enemies.tryHitLetter(key);
-            if (hit) {
-                Keyboard.flashKey(key, 'CORRECT');
-                ScreenShake.trigger(4, 0.15);
-            } else {
-                Keyboard.flashKey(key, 'WRONG');
-            }
+            LetterMarch.processInput(key);
         }
 
-        // Highlight letters of active enemies on keyboard
-        const activeLetters = Enemies.list
-            .filter(e => e.alive)
-            .map(e => e.letter);
-        Keyboard.highlightKeys(activeLetters);
+        LetterMarch.update(dt);
+    },
 
-        Enemies.update(dt, this.time);
-        Keyboard.update(dt);
+    updatePaused() {
+        if (this.input.mouseClicked) {
+            // Resume button
+            if (this._resumeBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._resumeBtn.x, this._resumeBtn.y, this._resumeBtn.w, this._resumeBtn.h)) {
+                this.state = STATES.PLAYING;
+                return;
+            }
+            // Menu button
+            if (this._pauseMenuBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._pauseMenuBtn.x, this._pauseMenuBtn.y, this._pauseMenuBtn.w, this._pauseMenuBtn.h)) {
+                this.state = STATES.MENU;
+                return;
+            }
+        }
+    },
+
+    updateGameOver() {
+        if (this.input.mouseClicked) {
+            if (this._tryAgainBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._tryAgainBtn.x, this._tryAgainBtn.y, this._tryAgainBtn.w, this._tryAgainBtn.h)) {
+                this.startLevel(Progression.currentLevel);
+                return;
+            }
+            if (this._goMenuBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._goMenuBtn.x, this._goMenuBtn.y, this._goMenuBtn.w, this._goMenuBtn.h)) {
+                this.state = STATES.MENU;
+                return;
+            }
+        }
+    },
+
+    updateWin() {
+        if (this.input.mouseClicked) {
+            if (this._nextLevelBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._nextLevelBtn.x, this._nextLevelBtn.y, this._nextLevelBtn.w, this._nextLevelBtn.h)) {
+                const next = Progression.currentLevel + 1;
+                if (next < LEVELS.length) {
+                    this.startLevel(next);
+                } else {
+                    this.state = STATES.LEVEL_SELECT;
+                }
+                return;
+            }
+            if (this._winMenuBtn && pointInRect(this.input.mouseX, this.input.mouseY,
+                this._winMenuBtn.x, this._winMenuBtn.y, this._winMenuBtn.w, this._winMenuBtn.h)) {
+                this.state = STATES.MENU;
+                return;
+            }
+        }
     },
 
     // ====== RENDERING ======
@@ -231,27 +333,36 @@ const Game = {
     render() {
         const ctx = this.ctx;
         ctx.save();
-
-        // Apply screen shake
         ctx.translate(ScreenShake.offsetX, ScreenShake.offsetY);
 
         switch (this.state) {
             case STATES.MENU:
                 this.renderMenu(ctx);
                 break;
+            case STATES.LEVEL_SELECT:
+                this.renderLevelSelect(ctx);
+                break;
             case STATES.PLAYING:
-                this.renderPlaying(ctx);
+            case STATES.WAVE_INTRO:
+                LetterMarch.render(ctx);
                 break;
             case STATES.PAUSED:
-                this.renderPlaying(ctx);
+                LetterMarch.render(ctx);
                 this.renderPauseOverlay(ctx);
+                break;
+            case STATES.GAME_OVER:
+                LetterMarch.render(ctx);
+                this.renderGameOverOverlay(ctx);
+                break;
+            case STATES.WIN:
+                LetterMarch.render(ctx);
+                this.renderWinOverlay(ctx);
                 break;
         }
 
         ctx.restore();
     },
 
-    // Render start menu
     renderMenu(ctx) {
         // Sky gradient background
         const grad = ctx.createLinearGradient(0, 0, 0, this.height);
@@ -260,22 +371,17 @@ const Game = {
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, this.width, this.height);
 
-        // Animated blocky clouds
         this.renderClouds(ctx);
 
-        // Ground blocks along bottom
+        // Ground blocks
         const blockSize = Math.max(30, this.width / 20);
         for (let x = 0; x < this.width; x += blockSize) {
-            // Grass layer
             ctx.fillStyle = COLORS.GRASS_DARK;
             ctx.fillRect(x, this.height - blockSize * 2, blockSize, blockSize);
             ctx.fillStyle = COLORS.GRASS_LIGHT;
-            // Grass top texture
             ctx.fillRect(x, this.height - blockSize * 2, blockSize, blockSize * 0.3);
-            // Dirt layer
             ctx.fillStyle = COLORS.DIRT_DARK;
             ctx.fillRect(x, this.height - blockSize, blockSize, blockSize);
-            // Dirt texture spots
             ctx.fillStyle = COLORS.DIRT_LIGHT;
             ctx.fillRect(x + blockSize * 0.2, this.height - blockSize * 0.6, blockSize * 0.2, blockSize * 0.2);
             ctx.fillRect(x + blockSize * 0.6, this.height - blockSize * 0.3, blockSize * 0.15, blockSize * 0.15);
@@ -286,7 +392,6 @@ const Game = {
         drawText(ctx, 'LETTER', this.width / 2, this.height * 0.2, titleSize, COLORS.TITLE_COLOR, 'center', 3);
         drawText(ctx, 'DEFENDERS', this.width / 2, this.height * 0.2 + titleSize * 1.5, titleSize, COLORS.TITLE_COLOR, 'center', 3);
 
-        // Subtitle
         const subSize = Math.max(10, titleSize * 0.45);
         drawText(ctx, 'Learn Your Letters!', this.width / 2, this.height * 0.2 + titleSize * 3, subSize, COLORS.SUBTITLE_COLOR, 'center', 2);
 
@@ -295,11 +400,9 @@ const Game = {
             const btn = this.menuButtons[i];
             const isHover = btn.active && pointInRect(this.input.mouseX, this.input.mouseY, btn.x, btn.y, btn.w, btn.h);
 
-            // Button shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fillRect(btn.x + 3, btn.y + 3, btn.w, btn.h);
 
-            // Button background
             if (!btn.active) {
                 ctx.fillStyle = COLORS.MENU_BUTTON_LOCKED;
             } else if (isHover) {
@@ -309,84 +412,249 @@ const Game = {
             }
             ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
 
-            // Button border
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.lineWidth = 2;
             ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
 
-            // Button highlight (top edge)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
             ctx.fillRect(btn.x, btn.y, btn.w, btn.h * 0.3);
 
-            // Button text
             const btnFontSize = Math.max(10, btn.h * 0.35);
             const label = btn.active ? btn.label : btn.label + ' (Locked)';
             drawText(ctx, label, btn.x + btn.w / 2, btn.y + btn.h / 2, btnFontSize, COLORS.WHITE, 'center', 1);
         }
     },
 
-    // Render simple blocky clouds
     renderClouds(ctx) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         const cloudW = this.width * 0.08;
         const cloudH = cloudW * 0.4;
-
-        // A few static clouds (could animate later)
         const clouds = [
             { x: 0.1, y: 0.08 },
             { x: 0.35, y: 0.12 },
             { x: 0.6, y: 0.06 },
             { x: 0.85, y: 0.14 },
         ];
-
         for (let i = 0; i < clouds.length; i++) {
             const c = clouds[i];
-            // Slowly drift clouds
             const drift = ((this.time * 8 + i * 200) % (this.width + cloudW * 3)) - cloudW;
             const cx = drift;
             const cy = this.height * c.y;
-            // Blocky cloud shape (3 overlapping rectangles)
             ctx.fillRect(cx, cy, cloudW, cloudH);
             ctx.fillRect(cx + cloudW * 0.2, cy - cloudH * 0.5, cloudW * 0.6, cloudH * 0.5);
             ctx.fillRect(cx - cloudW * 0.15, cy + cloudH * 0.1, cloudW * 0.4, cloudH * 0.6);
         }
     },
 
-    // Render the playing state
-    renderPlaying(ctx) {
-        // Sky background for game area
-        const gameH = this.height * CONFIG.GAME_AREA_RATIO;
-        const grad = ctx.createLinearGradient(0, 0, 0, gameH);
+    // ====== LEVEL SELECT SCREEN ======
+
+    renderLevelSelect(ctx) {
+        // Sky gradient
+        const grad = ctx.createLinearGradient(0, 0, 0, this.height);
         grad.addColorStop(0, COLORS.SKY_TOP);
         grad.addColorStop(1, COLORS.SKY_BOTTOM);
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, this.width, gameH);
+        ctx.fillRect(0, 0, this.width, this.height);
 
-        // Grid
-        Grid.render(ctx, this.time);
+        this.renderClouds(ctx);
 
-        // Path decorations (cave + castle)
-        Path.render(ctx);
+        // Title
+        const titleSize = Math.max(16, this.width * 0.03);
+        drawText(ctx, 'SELECT LEVEL', this.width / 2, this.height * 0.15, titleSize, COLORS.TITLE_COLOR, 'center', 3);
 
-        // Enemies
-        Enemies.render(ctx, this.time);
+        const subSize = Math.max(10, titleSize * 0.5);
+        drawText(ctx, 'Letter March', this.width / 2, this.height * 0.15 + titleSize * 1.8, subSize, COLORS.SUBTITLE_COLOR, 'center', 2);
 
-        // Keyboard
-        Keyboard.render(ctx);
+        // Level buttons
+        for (let i = 0; i < this.levelButtons.length; i++) {
+            const btn = this.levelButtons[i];
+            const level = LEVELS[i];
+            const unlocked = Progression.isLevelUnlocked(i);
+            const stars = Progression.getLevelStars(i);
+            const isHover = unlocked && pointInRect(this.input.mouseX, this.input.mouseY, btn.x, btn.y, btn.w, btn.h);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(btn.x + 3, btn.y + 3, btn.w, btn.h);
+
+            // Background
+            if (!unlocked) {
+                ctx.fillStyle = '#444444';
+            } else if (isHover) {
+                ctx.fillStyle = COLORS.MENU_BUTTON_HOVER;
+            } else {
+                ctx.fillStyle = COLORS.MENU_BUTTON;
+            }
+            ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+
+            // Border
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+
+            // Highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.fillRect(btn.x, btn.y, btn.w, btn.h * 0.3);
+
+            const numSize = Math.max(14, btn.w * 0.3);
+            const nameSize = Math.max(7, btn.w * 0.1);
+
+            if (unlocked) {
+                // Level number
+                drawText(ctx, '' + level.id, btn.x + btn.w / 2, btn.y + btn.h * 0.3, numSize, COLORS.WHITE, 'center', 2);
+
+                // Level name
+                drawText(ctx, level.name, btn.x + btn.w / 2, btn.y + btn.h * 0.55, nameSize, COLORS.SUBTITLE_COLOR, 'center', 1);
+
+                // Stars
+                const starSize = Math.max(10, btn.w * 0.12);
+                const starGap = starSize * 1.5;
+                const starsStartX = btn.x + btn.w / 2 - starGap;
+                for (let s = 0; s < 3; s++) {
+                    drawStar(ctx, starsStartX + s * starGap, btn.y + btn.h * 0.78, starSize, s < stars);
+                }
+            } else {
+                // Lock icon (simple blocky lock)
+                const lockSize = numSize * 0.8;
+                const lx = btn.x + btn.w / 2;
+                const ly = btn.y + btn.h * 0.4;
+                ctx.fillStyle = '#888888';
+                // Lock body
+                ctx.fillRect(lx - lockSize * 0.4, ly, lockSize * 0.8, lockSize * 0.6);
+                // Lock shackle
+                ctx.fillRect(lx - lockSize * 0.25, ly - lockSize * 0.4, lockSize * 0.5, lockSize * 0.4);
+                ctx.fillStyle = '#444444';
+                ctx.fillRect(lx - lockSize * 0.15, ly - lockSize * 0.3, lockSize * 0.3, lockSize * 0.3);
+
+                drawText(ctx, level.name, btn.x + btn.w / 2, btn.y + btn.h * 0.75, nameSize, '#888888', 'center', 1);
+            }
+        }
+
+        // Back button
+        const backW = Math.min(160, this.width * 0.2);
+        const backH = Math.min(40, this.height * 0.06);
+        this._backBtn = drawButton(ctx, 'Back', this.width / 2 - backW / 2, this.height * 0.88, backW, backH,
+            this.input.mouseX, this.input.mouseY);
     },
 
-    // Render pause overlay
+    // ====== PAUSE OVERLAY ======
+
     renderPauseOverlay(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, this.width, this.height);
+
         const pauseSize = Math.max(20, this.width * 0.04);
-        drawText(ctx, 'PAUSED', this.width / 2, this.height * 0.4, pauseSize, COLORS.WHITE, 'center', 3);
+        drawText(ctx, 'PAUSED', this.width / 2, this.height * 0.3, pauseSize, COLORS.WHITE, 'center', 3);
+
         const subSize = Math.max(10, pauseSize * 0.5);
-        drawText(ctx, 'Press ESC to Resume', this.width / 2, this.height * 0.4 + pauseSize * 2, subSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+        drawText(ctx, 'Press ESC to Resume', this.width / 2, this.height * 0.3 + pauseSize * 2, subSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+
+        const btnW = Math.min(200, this.width * 0.25);
+        const btnH = Math.min(45, this.height * 0.06);
+        const gap = btnH * 1.5;
+
+        this._resumeBtn = drawButton(ctx, 'Resume', this.width / 2 - btnW / 2, this.height * 0.5, btnW, btnH,
+            this.input.mouseX, this.input.mouseY);
+        this._pauseMenuBtn = drawButton(ctx, 'Back to Menu', this.width / 2 - btnW / 2, this.height * 0.5 + gap, btnW, btnH,
+            this.input.mouseX, this.input.mouseY);
+    },
+
+    // ====== GAME OVER OVERLAY ======
+
+    renderGameOverOverlay(ctx) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        const titleSize = Math.max(22, this.width * 0.04);
+        drawText(ctx, 'GAME OVER', this.width / 2, this.height * 0.25, titleSize, '#FF4444', 'center', 3);
+
+        const scoreSize = Math.max(14, this.width * 0.02);
+        drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.35, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
+
+        // Encouraging message
+        const messages = [
+            'Great try! Keep practicing!',
+            'You\'re getting better!',
+            'Almost had it! Try again!',
+            'Good effort! You can do it!',
+        ];
+        const msgSize = Math.max(10, this.width * 0.015);
+        const stableMsg = messages[Progression.score % messages.length];
+        drawText(ctx, stableMsg, this.width / 2, this.height * 0.43, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+
+        const btnW = Math.min(200, this.width * 0.25);
+        const btnH = Math.min(45, this.height * 0.06);
+        const gap = btnH * 1.5;
+
+        this._tryAgainBtn = drawButton(ctx, 'Try Again', this.width / 2 - btnW / 2, this.height * 0.55, btnW, btnH,
+            this.input.mouseX, this.input.mouseY);
+        this._goMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.55 + gap, btnW, btnH,
+            this.input.mouseX, this.input.mouseY);
+    },
+
+    // ====== WIN OVERLAY ======
+
+    renderWinOverlay(ctx) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        const titleSize = Math.max(22, this.width * 0.04);
+        drawText(ctx, 'LEVEL COMPLETE!', this.width / 2, this.height * 0.18, titleSize, COLORS.TITLE_COLOR, 'center', 3);
+
+        const scoreSize = Math.max(14, this.width * 0.02);
+        drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.27, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
+
+        // Stars
+        const stars = Progression.getStars();
+        const starSize = Math.max(20, this.width * 0.035);
+        const starGap = starSize * 2.5;
+        const starsStartX = this.width / 2 - starGap;
+        for (let i = 0; i < 3; i++) {
+            drawStar(ctx, starsStartX + i * starGap, this.height * 0.36, starSize, i < stars);
+        }
+
+        // Encouraging message based on stars
+        let msg;
+        if (stars === 3) msg = 'PERFECT! You\'re a typing hero!';
+        else if (stars === 2) msg = 'Super job! Almost perfect!';
+        else msg = 'Great work! Keep going!';
+
+        const msgSize = Math.max(10, this.width * 0.015);
+        drawText(ctx, msg, this.width / 2, this.height * 0.46, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+
+        const btnW = Math.min(200, this.width * 0.25);
+        const btnH = Math.min(45, this.height * 0.06);
+        const gap = btnH * 1.5;
+
+        const nextLabel = (Progression.currentLevel + 1 < LEVELS.length) ? 'Next Level' : 'Level Select';
+        this._nextLevelBtn = drawButton(ctx, nextLabel, this.width / 2 - btnW / 2, this.height * 0.55, btnW, btnH,
+            this.input.mouseX, this.input.mouseY);
+        this._winMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.55 + gap, btnW, btnH,
+            this.input.mouseX, this.input.mouseY);
     },
 };
 
-// Start the game when the page loads
+// ====== Font Loading + Game Start ======
 window.addEventListener('load', () => {
-    Game.init();
+    // Show loading message
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '20px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Loading...', canvas.width / 2, canvas.height / 2);
+
+    // Wait for font to load
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+            Game.init();
+        });
+    } else {
+        // Fallback: just start after a short delay
+        setTimeout(() => Game.init(), 500);
+    }
 });
