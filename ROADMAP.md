@@ -40,7 +40,7 @@
 
 ---
 
-## Phase 2a: Stopwatch + Best Times ← CURRENT
+## Phase 2a: Stopwatch + Best Times ← COMPLETE
 **Goal**: Add competitive timer to drive replayability
 
 **Deliverables**:
@@ -49,11 +49,11 @@
 - Best times displayed on level select, win screen, and game over screen
 - "NEW BEST!" celebration on beating a record
 
-**Status**: In progress
+**Status**: Complete
 
 ---
 
-## Phase 2b: Enemy Variety + Level Layouts
+## Phase 2b: Enemy Variety + Level Layouts ← CURRENT
 **Goal**: Add enemy types and unique path layouts to increase difficulty and variety
 
 **Deliverables**:
