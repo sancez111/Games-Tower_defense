@@ -19,21 +19,24 @@
 
 ---
 
-## Phase 2: Letter March Mode
-**Goal**: First fully playable game mode
+## Phase 2: Letter March Mode ← CURRENT
+**Goal**: First fully playable game mode + Phase 1 performance fixes
 
 **Deliverables**:
+- Phase 1 fixes: grid caching, gradient caching, touch keyboard input, font loading, navigation
 - Letter enemies spawn at path start, walk toward base
 - Each enemy displays a letter on its body (big, clear, Minecraft font)
-- Player types the matching letter to destroy the enemy (with zap animation)
+- Player types the matching letter to destroy the enemy (block explosion particles)
 - Wrong key = visual feedback (shake/flash, no punishment)
 - Wave system: groups of letters arrive in waves with breaks between
-- Starting letter set: F, J, D, K (home row fingers)
+- 5 levels starting with F, J and progressing through home row
+- Level select screen with star ratings and unlock progression
 - Health system: base has hearts, loses one per enemy that arrives
-- Win/lose screen with encouraging messages
-- Basic scoring: points per correct letter, bonus for speed
+- Win/lose screens with encouraging messages and star ratings
+- Scoring with combo system and floating text feedback
+- Progress saved in browser (localStorage)
 
-**Status**: Not started
+**Status**: In progress — see PHASE2.md for detailed plan
 
 ---
 
