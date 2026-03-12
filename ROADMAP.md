@@ -71,6 +71,30 @@
 
 ---
 
+## Phase 2c: Super Powers
+**Goal**: Add collectible power-ups that drop from destroyed enemies, providing exciting abilities
+
+**Deliverables**:
+- **Power-up drop system**: Destroyed enemies have a random chance to drop a glowing pickup on the path. Player collects it by typing a bonus letter that appears on the pickup (reinforces typing!). Pickups disappear after a few seconds if not collected.
+- **Power inventory**: Collected powers stored in slots shown at bottom-left of screen (max 3 held at once). Spacebar activates selected power, Alt rotates selection.
+- **6 Powers** (unlocked at level milestones):
+  - **Fireball** (Level 3): Destroys one enemy anywhere on screen — a fireball animation flies to the nearest enemy
+  - **Shield** (Level 5): Blocks the next enemy that reaches the castle — a glowing barrier appears at the base for one hit
+  - **Slow Clock** (Level 7): All enemies move at half speed for 5 seconds — clock visual + blue tint on enemies
+  - **Blizzard** (Level 9): Freezes all on-screen enemies in place for 4 seconds — ice crystals on enemies
+  - **Lava Moat** (Level 12): A lava pool appears in front of the castle for 3 seconds, destroying enemies that walk into it
+  - **Dragon** (Level 15): A dragon sweeps across 1/3 of the path, fire breath destroys everything in that zone
+- **Balancing**:
+  - Drop rate is low enough that powers feel special (~15-20% chance per kill)
+  - Only one power can be used per wave
+  - Higher star ratings require fewer power uses (encourages pure typing)
+  - Later levels are designed harder to account for powers being available
+- **Visual**: Pickups are glowing colored blocks bouncing on the path. Each power type has a distinct color and simple icon.
+
+**Status**: Not started
+
+---
+
 ## Phase 3: Keyboard Defense Mode
 **Goal**: Second game mode focused on keyboard location learning
 
