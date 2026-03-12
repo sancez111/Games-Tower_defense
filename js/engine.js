@@ -511,7 +511,15 @@ const Game = {
                 const starGap = starSize * 1.5;
                 const starsStartX = btn.x + btn.w / 2 - starGap;
                 for (let s = 0; s < 3; s++) {
-                    drawStar(ctx, starsStartX + s * starGap, btn.y + btn.h * 0.78, starSize, s < stars);
+                    drawStar(ctx, starsStartX + s * starGap, btn.y + btn.h * 0.73, starSize, s < stars);
+                }
+
+                // Best time
+                const bestTime = Progression.getLevelBestTime(i);
+                if (bestTime != null) {
+                    const btSize = Math.max(6, btn.w * 0.08);
+                    drawText(ctx, 'Best: ' + formatTimeShort(bestTime),
+                        btn.x + btn.w / 2, btn.y + btn.h * 0.92, btSize, COLORS.SUBTITLE_COLOR, 'center', 1);
                 }
             } else {
                 // Lock icon (simple blocky lock)
@@ -571,6 +579,11 @@ const Game = {
         const scoreSize = Math.max(14, this.width * 0.02);
         drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.35, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
 
+        // Survived time
+        const timeSize = Math.max(9, this.width * 0.013);
+        drawText(ctx, 'Survived: ' + formatTimeShort(Progression.levelTime),
+            this.width / 2, this.height * 0.42, timeSize, COLORS.SUBTITLE_COLOR, 'center', 1);
+
         // Encouraging message
         const messages = [
             'Great try! Keep practicing!',
@@ -580,15 +593,15 @@ const Game = {
         ];
         const msgSize = Math.max(10, this.width * 0.015);
         const stableMsg = messages[Progression.score % messages.length];
-        drawText(ctx, stableMsg, this.width / 2, this.height * 0.43, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+        drawText(ctx, stableMsg, this.width / 2, this.height * 0.48, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
 
         const btnW = Math.min(200, this.width * 0.25);
         const btnH = Math.min(45, this.height * 0.06);
         const gap = btnH * 1.5;
 
-        this._tryAgainBtn = drawButton(ctx, 'Try Again', this.width / 2 - btnW / 2, this.height * 0.55, btnW, btnH,
+        this._tryAgainBtn = drawButton(ctx, 'Try Again', this.width / 2 - btnW / 2, this.height * 0.57, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
-        this._goMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.55 + gap, btnW, btnH,
+        this._goMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.57 + gap, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
     },
 
@@ -599,10 +612,10 @@ const Game = {
         ctx.fillRect(0, 0, this.width, this.height);
 
         const titleSize = Math.max(22, this.width * 0.04);
-        drawText(ctx, 'LEVEL COMPLETE!', this.width / 2, this.height * 0.18, titleSize, COLORS.TITLE_COLOR, 'center', 3);
+        drawText(ctx, 'LEVEL COMPLETE!', this.width / 2, this.height * 0.15, titleSize, COLORS.TITLE_COLOR, 'center', 3);
 
         const scoreSize = Math.max(14, this.width * 0.02);
-        drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.27, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
+        drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.24, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
 
         // Stars
         const stars = Progression.getStars();
@@ -610,7 +623,27 @@ const Game = {
         const starGap = starSize * 2.5;
         const starsStartX = this.width / 2 - starGap;
         for (let i = 0; i < 3; i++) {
-            drawStar(ctx, starsStartX + i * starGap, this.height * 0.36, starSize, i < stars);
+            drawStar(ctx, starsStartX + i * starGap, this.height * 0.32, starSize, i < stars);
+        }
+
+        // Time display
+        const timeSize = Math.max(11, this.width * 0.016);
+        const timeStr = 'Time: ' + formatTimeShort(LetterMarch._completionTime);
+        drawText(ctx, timeStr, this.width / 2, this.height * 0.41, timeSize, COLORS.WHITE, 'center', 2);
+
+        if (LetterMarch._isNewBest) {
+            const bestSize = Math.max(12, this.width * 0.018);
+            // Pulse animation for NEW BEST
+            const pulse = 1 + Math.sin(this.time * 6) * 0.08;
+            drawText(ctx, 'NEW BEST!', this.width / 2, this.height * 0.41 + timeSize * 1.6,
+                bestSize * pulse, '#FFD700', 'center', 2);
+        } else {
+            const prevBest = Progression.getLevelBestTime(Progression.currentLevel);
+            if (prevBest != null) {
+                const refSize = Math.max(9, this.width * 0.013);
+                drawText(ctx, 'Best: ' + formatTimeShort(prevBest), this.width / 2, this.height * 0.41 + timeSize * 1.6,
+                    refSize, COLORS.SUBTITLE_COLOR, 'center', 1);
+            }
         }
 
         // Encouraging message based on stars
@@ -620,16 +653,16 @@ const Game = {
         else msg = 'Great work! Keep going!';
 
         const msgSize = Math.max(10, this.width * 0.015);
-        drawText(ctx, msg, this.width / 2, this.height * 0.46, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+        drawText(ctx, msg, this.width / 2, this.height * 0.51, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
 
         const btnW = Math.min(200, this.width * 0.25);
         const btnH = Math.min(45, this.height * 0.06);
         const gap = btnH * 1.5;
 
         const nextLabel = (Progression.currentLevel + 1 < LEVELS.length) ? 'Next Level' : 'Level Select';
-        this._nextLevelBtn = drawButton(ctx, nextLabel, this.width / 2 - btnW / 2, this.height * 0.55, btnW, btnH,
+        this._nextLevelBtn = drawButton(ctx, nextLabel, this.width / 2 - btnW / 2, this.height * 0.59, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
-        this._winMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.55 + gap, btnW, btnH,
+        this._winMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.59 + gap, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
     },
 };

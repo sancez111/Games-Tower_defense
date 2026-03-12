@@ -69,6 +69,10 @@ const Progression = {
     combo: 0,
     maxCombo: 0,
 
+    // Timer state
+    levelTime: 0,
+    timerRunning: false,
+
     // localStorage key
     SAVE_KEY: 'letterDefenders_progress',
 
@@ -79,6 +83,8 @@ const Progression = {
         this.score = 0;
         this.combo = 0;
         this.maxCombo = 0;
+        this.levelTime = 0;
+        this.timerRunning = false;
     },
 
     startLevel(levelIndex) {
@@ -88,6 +94,8 @@ const Progression = {
         this.score = 0;
         this.combo = 0;
         this.maxCombo = 0;
+        this.levelTime = 0;
+        this.timerRunning = false;
     },
 
     getLevelDef() {
@@ -150,19 +158,55 @@ const Progression = {
         return {};
     },
 
-    saveLevel(levelIndex, stars) {
+    // Normalize a saved entry: old format (number) -> new format ({ stars, bestTime })
+    _normalizeSaveEntry(entry) {
+        if (typeof entry === 'number') {
+            return { stars: entry, bestTime: null };
+        }
+        if (entry && typeof entry === 'object') {
+            return entry;
+        }
+        return { stars: 0, bestTime: null };
+    },
+
+    saveLevel(levelIndex, stars, completionTime) {
         const progress = this.loadProgress();
         const key = 'level_' + (levelIndex + 1);
-        const existing = progress[key] || 0;
-        progress[key] = Math.max(existing, stars);
+        const existing = this._normalizeSaveEntry(progress[key]);
+
+        const newEntry = {
+            stars: Math.max(existing.stars, stars),
+            bestTime: existing.bestTime,
+        };
+
+        // Save best time only on win (completionTime provided)
+        if (completionTime != null) {
+            if (existing.bestTime == null || completionTime < existing.bestTime) {
+                newEntry.bestTime = completionTime;
+            }
+        }
+
+        progress[key] = newEntry;
         try {
             localStorage.setItem(this.SAVE_KEY, JSON.stringify(progress));
         } catch (e) { /* ignore */ }
+
+        return newEntry;
     },
 
     getLevelStars(levelIndex) {
         const progress = this.loadProgress();
-        return progress['level_' + (levelIndex + 1)] || 0;
+        const entry = progress['level_' + (levelIndex + 1)];
+        if (!entry) return 0;
+        if (typeof entry === 'number') return entry;
+        return entry.stars || 0;
+    },
+
+    getLevelBestTime(levelIndex) {
+        const progress = this.loadProgress();
+        const entry = progress['level_' + (levelIndex + 1)];
+        if (!entry || typeof entry === 'number') return null;
+        return entry.bestTime || null;
     },
 
     isLevelUnlocked(levelIndex) {
