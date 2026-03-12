@@ -32,15 +32,15 @@ const Game = {
         // Setup input handlers
         this.setupInput();
 
-        // Initial resize
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-
-        // Initialize systems
+        // Initialize systems (must happen before first resize)
         Grid.init();
         Path.init();
         Keyboard.init();
         Enemies.init();
+
+        // Initial resize
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
 
         // Start game loop
         this.lastTime = performance.now();
