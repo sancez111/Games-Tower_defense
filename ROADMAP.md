@@ -72,7 +72,7 @@
 
 ---
 
-## Phase 2c: Super Powers
+## Phase 2c: Super Powers ← CURRENT
 **Goal**: Add collectible power-ups that drop from destroyed enemies, providing exciting abilities
 
 **Deliverables**:
