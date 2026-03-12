@@ -2,6 +2,9 @@
 // Letter Defenders — Enemy System
 // ============================================
 
+// Global swarm group counter
+let _nextSwarmGroup = 1;
+
 const Enemies = {
     list: [],
     spawnTimer: 0,
@@ -22,25 +25,56 @@ const Enemies = {
     },
 
     // Set the wave's spawn queue and parameters
+    // Supports both old format (array of letter strings) and new format (mixed strings/objects)
     loadWave(enemies, spawnInterval, enemySpeed) {
-        this.spawnQueue = enemies.slice();
+        this.spawnQueue = [];
         this.currentInterval = spawnInterval;
         this.currentSpeed = enemySpeed;
         this.spawnTimer = 0;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const entry = enemies[i];
+            if (typeof entry === 'string') {
+                // Old format: plain letter string defaults to walker
+                this.spawnQueue.push({ letter: entry, type: 'walker', count: 1 });
+            } else {
+                // New format: { letter, type, count? }
+                this.spawnQueue.push({
+                    letter: entry.letter,
+                    type: entry.type || 'walker',
+                    count: entry.count || 1,
+                });
+            }
+        }
     },
 
-    spawn(letter) {
+    spawn(letter, type, swarmGroup, swarmOffset) {
+        type = type || 'walker';
+        const typeDef = ENEMY_TYPES[type] || ENEMY_TYPES.walker;
+
         this.list.push({
             letter: letter.toUpperCase(),
+            type: type,
             pathProgress: 0,
-            speed: this.currentSpeed,
+            speed: this.currentSpeed * typeDef.speedMultiplier,
             x: 0,
             y: 0,
             alive: true,
             flash: null,
-            bodyColor: COLORS.ENEMY_BODY,
-            size: 1,
+            bodyColor: typeDef.color,
+            darkColor: typeDef.darkColor,
+            sizeMultiplier: typeDef.sizeMultiplier,
+            maxHits: typeDef.maxHits,
+            currentHits: 0,
             bobOffset: Math.random() * Math.PI * 2,
+            swarmGroup: swarmGroup || 0,
+            swarmOffsetX: swarmOffset ? swarmOffset.x : 0,
+            swarmOffsetY: swarmOffset ? swarmOffset.y : 0,
+            // Tank damage state
+            damaged: false,
+            damageFlash: null,
+            // Sprinter trail
+            trailPositions: [],
         });
         this.listChanged = true;
     },
@@ -50,7 +84,22 @@ const Enemies = {
         this.spawnTimer += dt;
         if (this.spawnTimer >= this.currentInterval && this.spawnQueue.length > 0) {
             this.spawnTimer = 0;
-            this.spawn(this.spawnQueue.shift());
+            const entry = this.spawnQueue.shift();
+
+            if (entry.type === 'swarm') {
+                // Spawn a cluster with shared swarm group
+                const group = _nextSwarmGroup++;
+                const count = entry.count || 3;
+                for (let s = 0; s < count; s++) {
+                    const offset = {
+                        x: (Math.random() - 0.5) * 10,
+                        y: (Math.random() - 0.5) * 10,
+                    };
+                    this.spawn(entry.letter, 'swarm', group, offset);
+                }
+            } else {
+                this.spawn(entry.letter, entry.type);
+            }
         }
 
         // Update each enemy
@@ -60,10 +109,29 @@ const Enemies = {
             enemy.pathProgress += enemy.speed * dt;
 
             const pos = Path.getPositionAt(enemy.pathProgress);
-            enemy.x = pos.x;
-            enemy.y = pos.y;
+            enemy.x = pos.x + enemy.swarmOffsetX;
+            enemy.y = pos.y + enemy.swarmOffsetY;
 
-            // Update flash animation
+            // Track trail for sprinters
+            if (enemy.type === 'sprinter' && enemy.alive) {
+                enemy.trailPositions.push({ x: enemy.x, y: enemy.y, age: 0 });
+                if (enemy.trailPositions.length > 6) {
+                    enemy.trailPositions.shift();
+                }
+                for (let t = 0; t < enemy.trailPositions.length; t++) {
+                    enemy.trailPositions[t].age += dt;
+                }
+            }
+
+            // Update damage flash (tank first-hit flash)
+            if (enemy.damageFlash) {
+                enemy.damageFlash.update(dt);
+                if (!enemy.damageFlash.active) {
+                    enemy.damageFlash = null;
+                }
+            }
+
+            // Update destroy flash animation
             if (enemy.flash) {
                 enemy.flash.update(dt);
                 if (!enemy.flash.active) {
@@ -90,20 +158,57 @@ const Enemies = {
         }
     },
 
-    // Returns the enemy if hit, or null
+    // Returns the enemy if hit (destroyed), or null
     tryHitLetter(letter) {
         letter = letter.toUpperCase();
+
+        // First check for swarm groups — one keypress kills all in the group
+        for (let i = 0; i < this.list.length; i++) {
+            const enemy = this.list[i];
+            if (enemy.letter === letter && enemy.alive && enemy.type === 'swarm' && enemy.swarmGroup > 0) {
+                // Find all enemies in this swarm group
+                const group = enemy.swarmGroup;
+                const killed = [];
+                for (let j = this.list.length - 1; j >= 0; j--) {
+                    const e = this.list[j];
+                    if (e.swarmGroup === group && e.alive) {
+                        e.alive = false;
+                        Particles.spawn(e.x, e.y, e.bodyColor, 6);
+                        killed.push({ ...e });
+                        this.list.splice(j, 1);
+                    }
+                }
+                this.listChanged = true;
+                // Return the first one as the "hit" enemy; caller gets points once
+                // but the visual effect is a big multi-explosion
+                if (killed.length > 0) {
+                    killed[0]._swarmCount = killed.length;
+                    return killed[0];
+                }
+            }
+        }
+
+        // Regular enemies (walker, sprinter, tank)
         for (let i = 0; i < this.list.length; i++) {
             const enemy = this.list[i];
             if (enemy.letter === letter && enemy.alive) {
-                enemy.alive = false;
-                // Spawn particles instead of white flash
-                Particles.spawn(enemy.x, enemy.y, enemy.bodyColor, 8);
-                // Remove immediately (no flash delay for particles)
-                const hitEnemy = { ...enemy };
-                this.list.splice(i, 1);
-                this.listChanged = true;
-                return hitEnemy;
+                enemy.currentHits++;
+
+                if (enemy.currentHits >= enemy.maxHits) {
+                    // Destroyed
+                    enemy.alive = false;
+                    Particles.spawn(enemy.x, enemy.y, enemy.bodyColor, 8);
+                    const hitEnemy = { ...enemy };
+                    this.list.splice(i, 1);
+                    this.listChanged = true;
+                    return hitEnemy;
+                } else {
+                    // Tank: damaged but not destroyed
+                    enemy.damaged = true;
+                    enemy.damageFlash = createFlash(0.3);
+                    // Return a special marker so the game knows a hit landed
+                    return { _tankDamaged: true, letter: enemy.letter, x: enemy.x, y: enemy.y, pathProgress: enemy.pathProgress };
+                }
             }
         }
         return null;
@@ -116,22 +221,23 @@ const Enemies = {
 
     render(ctx, time) {
         const ts = Grid.tileSize;
-        const enemySize = ts * 0.8;
 
         for (let i = 0; i < this.list.length; i++) {
             const enemy = this.list[i];
-            const halfSize = enemySize / 2;
+            const baseSize = ts * enemy.sizeMultiplier;
+            const halfSize = baseSize / 2;
             const bob = Math.sin(time * 6 + enemy.bobOffset) * 3;
             const ex = enemy.x - halfSize;
-            const ey = enemy.y - enemySize + bob;
+            const ey = enemy.y - baseSize + bob;
 
+            // Destroy flash
             if (enemy.flash && enemy.flash.active) {
                 const flashAlpha = 1 - enemy.flash.progress;
                 const scale = 1 + enemy.flash.progress * 0.5;
                 const sx = enemy.x - halfSize * scale;
-                const sy = enemy.y - enemySize * scale + bob;
-                const sw = enemySize * scale;
-                const sh = enemySize * scale;
+                const sy = enemy.y - baseSize * scale + bob;
+                const sw = baseSize * scale;
+                const sh = baseSize * scale;
                 ctx.globalAlpha = flashAlpha;
                 ctx.fillStyle = COLORS.WHITE;
                 ctx.fillRect(sx, sy, sw, sh);
@@ -139,36 +245,90 @@ const Enemies = {
                 continue;
             }
 
+            // Sprinter speed trail
+            if (enemy.type === 'sprinter' && enemy.trailPositions.length > 1) {
+                for (let t = 0; t < enemy.trailPositions.length - 1; t++) {
+                    const tp = enemy.trailPositions[t];
+                    const alpha = 0.15 * (1 - t / enemy.trailPositions.length);
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = enemy.bodyColor;
+                    const trailSize = baseSize * 0.6;
+                    ctx.fillRect(tp.x - trailSize / 2, tp.y - trailSize + bob, trailSize, trailSize);
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            // Damage flash overlay for tanks
+            if (enemy.damageFlash && enemy.damageFlash.active) {
+                const flashProgress = enemy.damageFlash.progress;
+                // Brief yellow flash
+                if (flashProgress < 0.5) {
+                    ctx.fillStyle = '#FFDD44';
+                    ctx.globalAlpha = 0.6 * (1 - flashProgress * 2);
+                    ctx.fillRect(ex - 2, ey - 2, baseSize + 4, baseSize + 4);
+                    ctx.globalAlpha = 1;
+                }
+            }
+
             // Body
             ctx.fillStyle = enemy.bodyColor;
-            ctx.fillRect(ex, ey, enemySize, enemySize);
+            ctx.fillRect(ex, ey, baseSize, baseSize);
 
-            // Outline
-            ctx.fillStyle = COLORS.ENEMY_DARK;
-            ctx.fillRect(ex, ey, enemySize, 3);
-            ctx.fillRect(ex, ey, 3, enemySize);
-            ctx.fillRect(ex + enemySize - 3, ey, 3, enemySize);
-            ctx.fillRect(ex, ey + enemySize - 3, enemySize, 3);
+            // Outline (thicker for tanks)
+            const outlineW = enemy.type === 'tank' ? 4 : 3;
+            ctx.fillStyle = enemy.darkColor;
+            ctx.fillRect(ex, ey, baseSize, outlineW);
+            ctx.fillRect(ex, ey, outlineW, baseSize);
+            ctx.fillRect(ex + baseSize - outlineW, ey, outlineW, baseSize);
+            ctx.fillRect(ex, ey + baseSize - outlineW, baseSize, outlineW);
 
-            // Eyes
-            const eyeSize = Math.max(3, enemySize * 0.12);
-            const eyeY = ey + enemySize * 0.22;
-            ctx.fillStyle = COLORS.ENEMY_EYES;
-            ctx.fillRect(ex + enemySize * 0.25, eyeY, eyeSize, eyeSize);
-            ctx.fillRect(ex + enemySize * 0.63, eyeY, eyeSize, eyeSize);
+            // Tank horns
+            if (enemy.type === 'tank') {
+                ctx.fillStyle = enemy.darkColor;
+                const hornW = baseSize * 0.15;
+                const hornH = baseSize * 0.25;
+                ctx.fillRect(ex + baseSize * 0.15, ey - hornH, hornW, hornH);
+                ctx.fillRect(ex + baseSize * 0.7, ey - hornH, hornW, hornH);
+            }
+
+            // Tank damage crack indicator
+            if (enemy.damaged && enemy.type === 'tank') {
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ex + baseSize * 0.3, ey + baseSize * 0.2);
+                ctx.lineTo(ex + baseSize * 0.5, ey + baseSize * 0.45);
+                ctx.lineTo(ex + baseSize * 0.4, ey + baseSize * 0.7);
+                ctx.stroke();
+            }
+
+            // Eyes (not for swarm — too small)
+            if (enemy.type !== 'swarm') {
+                const eyeSize = Math.max(3, baseSize * 0.12);
+                const eyeY = ey + baseSize * 0.22;
+                ctx.fillStyle = COLORS.ENEMY_EYES;
+                ctx.fillRect(ex + baseSize * 0.25, eyeY, eyeSize, eyeSize);
+                ctx.fillRect(ex + baseSize * 0.63, eyeY, eyeSize, eyeSize);
+            }
 
             // Letter
-            const letterSize = Math.max(12, enemySize * 0.45);
+            const letterSize = Math.max(10, baseSize * 0.45);
+            const letterWeight = enemy.type === 'tank' ? 'bold ' : '';
+            if (letterWeight) {
+                ctx.font = 'bold ' + letterSize + 'px ' + CONFIG.FONT_FAMILY;
+            }
             drawText(ctx, enemy.letter,
-                enemy.x, ey + enemySize * 0.65,
+                enemy.x, ey + baseSize * 0.65,
                 letterSize, COLORS.ENEMY_LETTER, 'center', 1);
 
-            // Feet
-            const footW = enemySize * 0.25;
-            const footH = enemySize * 0.15;
-            ctx.fillStyle = COLORS.ENEMY_DARK;
-            ctx.fillRect(ex + enemySize * 0.15, ey + enemySize, footW, footH);
-            ctx.fillRect(ex + enemySize * 0.6, ey + enemySize, footW, footH);
+            // Feet (walker and tank only)
+            if (enemy.type === 'walker' || enemy.type === 'tank') {
+                const footW = baseSize * 0.25;
+                const footH = baseSize * 0.15;
+                ctx.fillStyle = enemy.darkColor;
+                ctx.fillRect(ex + baseSize * 0.15, ey + baseSize, footW, footH);
+                ctx.fillRect(ex + baseSize * 0.6, ey + baseSize, footW, footH);
+            }
         }
     }
 };

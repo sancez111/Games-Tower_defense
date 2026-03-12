@@ -171,18 +171,23 @@ const Game = {
 
     buildLevelButtons() {
         const cx = this.width / 2;
-        const btnSize = Math.min(100, this.width * 0.12);
-        const gap = btnSize * 0.3;
-        const totalW = LEVELS.length * btnSize + (LEVELS.length - 1) * gap;
+        const cols = 7;
+        const rows = Math.ceil(LEVELS.length / cols);
+        const btnSize = Math.min(80, this.width * 0.1);
+        const gapX = btnSize * 0.25;
+        const gapY = btnSize * 0.3;
+        const totalW = cols * btnSize + (cols - 1) * gapX;
         const startX = cx - totalW / 2;
-        const startY = this.height * 0.4;
+        const startY = this.height * 0.3;
 
         this.levelButtons = [];
         for (let i = 0; i < LEVELS.length; i++) {
+            const row = Math.floor(i / cols);
+            const col = i % cols;
             this.levelButtons.push({
                 index: i,
-                x: startX + i * (btnSize + gap),
-                y: startY,
+                x: startX + col * (btnSize + gapX),
+                y: startY + row * (btnSize * 1.3 + gapY),
                 w: btnSize,
                 h: btnSize * 1.3,
             });
@@ -459,11 +464,11 @@ const Game = {
         this.renderClouds(ctx);
 
         // Title
-        const titleSize = Math.max(16, this.width * 0.03);
-        drawText(ctx, 'SELECT LEVEL', this.width / 2, this.height * 0.15, titleSize, COLORS.TITLE_COLOR, 'center', 3);
+        const titleSize = Math.max(16, this.width * 0.028);
+        drawText(ctx, 'SELECT LEVEL', this.width / 2, this.height * 0.1, titleSize, COLORS.TITLE_COLOR, 'center', 3);
 
         const subSize = Math.max(10, titleSize * 0.5);
-        drawText(ctx, 'Letter March', this.width / 2, this.height * 0.15 + titleSize * 1.8, subSize, COLORS.SUBTITLE_COLOR, 'center', 2);
+        drawText(ctx, 'Letter March', this.width / 2, this.height * 0.1 + titleSize * 1.8, subSize, COLORS.SUBTITLE_COLOR, 'center', 2);
 
         // Level buttons
         for (let i = 0; i < this.levelButtons.length; i++) {

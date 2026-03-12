@@ -53,7 +53,7 @@
 
 ---
 
-## Phase 2b: Enemy Variety + Level Layouts ← CURRENT
+## Phase 2b: Enemy Variety + Level Layouts ← COMPLETE
 **Goal**: Add enemy types and unique path layouts to increase difficulty and variety
 
 **Deliverables**:
@@ -61,13 +61,14 @@
   - Walker (existing): Normal speed, 1 hit — green block
   - Sprinter: Fast, 1 hit — blue block, smaller (introduced ~Level 3)
   - Tank: Slow, 2 hits to destroy — red block, bigger (introduced ~Level 5)
-  - Swarm: Group of 3-4 small enemies, all same letter, 1 keypress destroys all — purple blocks (introduced ~Level 4)
+  - Swarm: Group of 3-4 small enemies, all same letter, 1 keypress destroys all — purple blocks (introduced ~Level 7)
 - Enemy type difficulty scales gradually across levels (early = all Walkers, later = mixed)
-- **Level-specific path layouts**: Each level can define its own path (long winding = easier, short direct = harder)
-- Expand from 5 to 10+ levels to cover top row letters (R, U, E, I, W, O, Q, P)
+- **Level-specific path layouts**: 5 distinct paths (long winding, medium 2-turn, short direct, zigzag, straight rush)
+- Expanded from 5 to 14 levels covering home row through top row (Q-P)
 - Wave definitions use enemy types: e.g., `{ letter: 'F', type: 'tank' }` or `{ letter: 'J', type: 'swarm' }`
+- Level select updated to 2-row grid (7 per row)
 
-**Status**: Not started
+**Status**: Complete
 
 ---
 

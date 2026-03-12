@@ -11,7 +11,8 @@ const LetterMarch = {
     init(levelIndex) {
         Progression.startLevel(levelIndex);
         Grid.init();
-        Path.init();
+        const levelDef = Progression.getLevelDef();
+        Path.init(levelDef.path || null);
         Enemies.init();
         Particles.clear();
         FloatingTexts.clear();
@@ -115,32 +116,47 @@ const LetterMarch = {
     processInput(letter) {
         if (this.waveIntroActive) return;
 
-        const hitEnemy = Enemies.tryHitLetter(letter);
-        if (hitEnemy) {
+        const hitResult = Enemies.tryHitLetter(letter);
+        if (hitResult) {
             Keyboard.flashKey(letter, 'CORRECT');
-            ScreenShake.trigger(4, 0.15);
 
-            // Score
-            const points = Progression.scoreKill(hitEnemy.pathProgress);
+            // Tank damaged but not destroyed — small feedback, no score
+            if (hitResult._tankDamaged) {
+                ScreenShake.trigger(3, 0.1);
+                FloatingTexts.spawn(hitResult.x, hitResult.y - 20, 'HIT!', '#FFDD44', 12);
+                return;
+            }
+
+            // Full kill (walker, sprinter, tank final hit, or swarm group)
+            const swarmCount = hitResult._swarmCount || 1;
+            ScreenShake.trigger(swarmCount > 1 ? 6 : 4, 0.15);
+
+            // Score (bonus for swarm multi-kills)
+            const points = Progression.scoreKill(hitResult.pathProgress);
+            const totalPoints = swarmCount > 1 ? points * swarmCount : points;
+            if (swarmCount > 1) {
+                Progression.score += points * (swarmCount - 1); // extra swarm points
+            }
 
             // Floating score text
-            FloatingTexts.spawn(hitEnemy.x, hitEnemy.y - 20, '+' + points, COLORS.SCORE_COLOR, 14);
+            const scoreText = swarmCount > 1 ? '+' + totalPoints + ' x' + swarmCount : '+' + totalPoints;
+            FloatingTexts.spawn(hitResult.x, hitResult.y - 20, scoreText, COLORS.SCORE_COLOR, 14);
 
             // Combo text
             if (Progression.combo >= 2) {
-                FloatingTexts.spawn(hitEnemy.x + 20, hitEnemy.y - 40,
+                FloatingTexts.spawn(hitResult.x + 20, hitResult.y - 40,
                     'x' + Progression.combo + '!', COLORS.COMBO_COLOR, 12);
             }
 
             // Streak messages
             if (Progression.combo === 3) {
-                FloatingTexts.spawn(hitEnemy.x, hitEnemy.y - 60, 'NICE!', '#44FF44', 16);
+                FloatingTexts.spawn(hitResult.x, hitResult.y - 60, 'NICE!', '#44FF44', 16);
             } else if (Progression.combo === 5) {
-                FloatingTexts.spawn(hitEnemy.x, hitEnemy.y - 60, 'GREAT!', '#44DDFF', 18);
+                FloatingTexts.spawn(hitResult.x, hitResult.y - 60, 'GREAT!', '#44DDFF', 18);
             } else if (Progression.combo === 7) {
-                FloatingTexts.spawn(hitEnemy.x, hitEnemy.y - 60, 'PERFECT!', '#FF44FF', 20);
+                FloatingTexts.spawn(hitResult.x, hitResult.y - 60, 'PERFECT!', '#FF44FF', 20);
             } else if (Progression.combo > 7 && Progression.combo % 3 === 0) {
-                FloatingTexts.spawn(hitEnemy.x, hitEnemy.y - 60, 'AMAZING!', '#FFD700', 20);
+                FloatingTexts.spawn(hitResult.x, hitResult.y - 60, 'AMAZING!', '#FFD700', 20);
             }
         } else {
             Keyboard.flashKey(letter, 'WRONG');

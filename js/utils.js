@@ -61,6 +61,57 @@ const COLORS = {
     WAVE_COLOR: '#FFFFFF',
 };
 
+// Enemy type definitions
+const ENEMY_TYPES = {
+    walker: {
+        color: '#44AA44',
+        darkColor: '#338833',
+        sizeMultiplier: 0.8,
+        speedMultiplier: 1.0,
+        maxHits: 1,
+    },
+    sprinter: {
+        color: '#4488DD',
+        darkColor: '#3366AA',
+        sizeMultiplier: 0.6,
+        speedMultiplier: 1.8,
+        maxHits: 1,
+    },
+    tank: {
+        color: '#CC4444',
+        darkColor: '#993333',
+        sizeMultiplier: 1.0,
+        speedMultiplier: 0.6,
+        maxHits: 2,
+    },
+    swarm: {
+        color: '#9944CC',
+        darkColor: '#773399',
+        sizeMultiplier: 0.5,
+        speedMultiplier: 1.0,
+        maxHits: 1,
+    },
+};
+
+// Path layout definitions (waypoints as [col, row] arrays)
+const PATH_LAYOUTS = {
+    longWinding: [
+        [0, 2], [5, 2], [5, 6], [14, 6], [14, 2], [19, 2],
+    ],
+    mediumTwoTurn: [
+        [0, 3], [7, 3], [7, 7], [19, 7],
+    ],
+    shortDirect: [
+        [0, 5], [10, 5], [19, 5],
+    ],
+    zigzag: [
+        [0, 1], [6, 1], [6, 5], [13, 5], [13, 1], [17, 1], [17, 8], [19, 8],
+    ],
+    straightRush: [
+        [0, 5], [19, 5],
+    ],
+};
+
 // Game configuration
 const CONFIG = {
     GRID_COLS: 20,

@@ -4,22 +4,16 @@
 
 const Path = {
     // Path defined as array of grid coordinates [col, row]
-    // Winding path with 3 turns from left entry to right base
-    waypoints: [
-        [0, 2],   // Entry point (left side)
-        [5, 2],   // Go right
-        [5, 6],   // Turn down
-        [14, 6],  // Go right
-        [14, 2],  // Turn up
-        [19, 2],  // Exit to castle (right side)
-    ],
+    waypoints: [],
 
     // Segment lengths (calculated on init)
     segments: [],
     totalLength: 0,
 
     // Initialize path — set path tiles on grid and calculate segment lengths
-    init() {
+    // Accepts optional waypoints array; falls back to longWinding layout
+    init(waypoints) {
+        this.waypoints = waypoints || PATH_LAYOUTS.longWinding;
         this.calculateSegments();
         this.applyToGrid();
     },

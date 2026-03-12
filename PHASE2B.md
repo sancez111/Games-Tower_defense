@@ -150,3 +150,14 @@ When swarm enemies spawn:
 8. Old save data (5 levels) is handled gracefully — unlocked levels stay unlocked
 9. Game runs smoothly at 60fps even with swarm clusters on screen
 10. All existing features (timer, scoring, combos, etc.) work with the new enemy types
+
+## Status: COMPLETE
+
+### Implementation Summary
+- **ENEMY_TYPES** config in utils.js: walker, sprinter, tank, swarm with color, size, speed, hits
+- **PATH_LAYOUTS** in utils.js: 5 layouts (longWinding, mediumTwoTurn, shortDirect, zigzag, straightRush)
+- **Path.init(waypoints)** accepts per-level waypoints; levels specify their own path layout
+- **Enemy system** rewritten: type-aware spawn/render/hit with tank 2-hit, swarm group kill, sprinter trail
+- **Wave format** backwards-compatible: strings = walker, objects specify type
+- **14 levels** with progressive difficulty across letters AND enemy types
+- **Level select** updated to 2-row grid (7 per row)

@@ -55,9 +55,10 @@ A Minecraft-style tower defense learning game for young children (age 5+) to rec
 - **Graphics** (later): Gemini AI generates Minecraft-style sprite assets
 
 ## Current Status
-**Phase 2 — Letter March Mode** (Complete)
+**Phase 2b — Enemy Variety + Level Layouts** (Complete)
+- 4 enemy types: Walker (green), Sprinter (blue, fast), Tank (red, 2-hit), Swarm (purple, group kill)
+- 5 unique path layouts per level (long winding, medium S-shape, short direct, zigzag, straight rush)
+- 14 levels covering home row (F,J → A,S,D,F,J,K,L) through top row (Q,W,E,R,U,I,O,P)
+- Level select updated to 2-row grid
 - Level stopwatch timer with best time tracking
-  - Running timer in HUD (MM:SS.ms format) during active gameplay
-  - Best times saved per level in localStorage (backwards-compatible save format)
-  - Best times displayed on level select screen
-  - "NEW BEST!" celebration on win screen, survived time on game over screen
+- Scoring with combos, star ratings, and progressive difficulty
