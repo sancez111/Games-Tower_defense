@@ -121,6 +121,25 @@ function drawText(ctx, text, x, y, size, color, align, shadowOffset) {
     ctx.fillText(text, x, y);
 }
 
+// Format seconds as MM:SS.ms (e.g., "01:23.45")
+function formatTime(totalSeconds) {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = Math.floor(totalSeconds % 60);
+    const hundredths = Math.floor((totalSeconds * 100) % 100);
+    return (mins < 10 ? '0' : '') + mins + ':' +
+           (secs < 10 ? '0' : '') + secs + '.' +
+           (hundredths < 10 ? '0' : '') + hundredths;
+}
+
+// Format seconds as M:SS.ms for compact display (e.g., "1:23.45")
+function formatTimeShort(totalSeconds) {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = Math.floor(totalSeconds % 60);
+    const hundredths = Math.floor((totalSeconds * 100) % 100);
+    return mins + ':' + (secs < 10 ? '0' : '') + secs + '.' +
+           (hundredths < 10 ? '0' : '') + hundredths;
+}
+
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }

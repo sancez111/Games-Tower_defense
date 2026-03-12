@@ -56,3 +56,8 @@ A Minecraft-style tower defense learning game for young children (age 5+) to rec
 
 ## Current Status
 **Phase 2 — Letter March Mode** (Complete)
+- Level stopwatch timer with best time tracking
+  - Running timer in HUD (MM:SS.ms format) during active gameplay
+  - Best times saved per level in localStorage (backwards-compatible save format)
+  - Best times displayed on level select screen
+  - "NEW BEST!" celebration on win screen, survived time on game over screen

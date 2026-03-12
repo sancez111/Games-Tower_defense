@@ -20,6 +20,8 @@ const LetterMarch = {
         this.waveIntroActive = true;
         this.waveComplete = false;
         this.levelComplete = false;
+        this._isNewBest = false;
+        this._completionTime = 0;
 
         // Load the first wave
         this.startWaveIntro();
@@ -39,16 +41,25 @@ const LetterMarch = {
         this.waveIntroActive = false;
         this.waveComplete = false;
         Game.state = STATES.PLAYING;
+        // Start/resume timer when active gameplay begins
+        Progression.timerRunning = true;
     },
 
     update(dt) {
         // Wave intro countdown
         if (this.waveIntroActive) {
+            // Timer does NOT tick during wave intros
+            Progression.timerRunning = false;
             this.waveIntroTimer -= dt;
             if (this.waveIntroTimer <= 0) {
                 this.startCurrentWave();
             }
             return;
+        }
+
+        // Accumulate level timer during active gameplay
+        if (Progression.timerRunning) {
+            Progression.levelTime += dt;
         }
 
         Enemies.update(dt, Game.time);
@@ -73,8 +84,12 @@ const LetterMarch = {
             if (Progression.currentWave >= Progression.getTotalWaves()) {
                 // Level complete!
                 this.levelComplete = true;
+                Progression.timerRunning = false;
                 const stars = Progression.getStars();
-                Progression.saveLevel(Progression.currentLevel, stars);
+                const time = Math.round(Progression.levelTime * 100) / 100;
+                const saveResult = Progression.saveLevel(Progression.currentLevel, stars, time);
+                this._isNewBest = (saveResult.bestTime === time);
+                this._completionTime = time;
                 Game.state = STATES.WIN;
             } else {
                 // Next wave intro
@@ -91,6 +106,7 @@ const LetterMarch = {
         ScreenShake.trigger(8, 0.3);
 
         if (Progression.isGameOver()) {
+            Progression.timerRunning = false;
             Game.state = STATES.GAME_OVER;
         }
     },
@@ -170,6 +186,12 @@ const LetterMarch = {
         const waveText = 'Wave ' + (Progression.currentWave + 1) + '/' + Progression.getTotalWaves();
         drawText(ctx, waveText, Game.width / 2, hudY + waveSize / 2 + 5,
             waveSize, COLORS.WAVE_COLOR, 'center', 2);
+
+        // Timer (below wave indicator)
+        const timerSize = Math.max(9, Game.width * 0.012);
+        const timerText = formatTime(Progression.levelTime);
+        drawText(ctx, timerText, Game.width / 2, hudY + waveSize / 2 + 5 + waveSize + timerSize * 0.6,
+            timerSize, COLORS.WAVE_COLOR, 'center', 1);
 
         // Hearts (top-right)
         const heartSize = Math.max(16, Game.width * 0.025);
