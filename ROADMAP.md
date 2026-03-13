@@ -96,7 +96,23 @@
 
 ---
 
-## Phase 3: Keyboard Defense Mode ← CURRENT
+## Phase 2d: World System ← CURRENT
+**Goal**: 4 themed worlds with 16 levels and a Mario-style world map
+
+**Deliverables**:
+- 4 worlds: Forest (Greenwood), Desert (Sandstone), Snow (Frostpeak), Lava (Netherforge)
+- Each world has distinct tile colors, sky gradient, and decorations
+- 16 levels (4 per world) with progressive difficulty
+- Mario-style scrollable world map with dotted paths connecting level nodes
+- Animated decorations: snowflakes in Snow, lava glow in Lava
+- Per-world cave and castle visuals
+- 2 new levels (15: Fire Gauntlet, 16: Final Stand)
+
+**Status**: In progress — see PHASE2D.md
+
+---
+
+## Phase 3: Keyboard Defense Mode
 **Goal**: Second game mode focused on keyboard location learning
 
 **Deliverables**:
