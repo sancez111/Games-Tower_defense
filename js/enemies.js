@@ -158,57 +158,60 @@ const Enemies = {
         }
     },
 
-    // Returns the enemy if hit (destroyed), or null
-    tryHitLetter(letter) {
+    // Returns the enemy if hit (destroyed), or a damage marker, or null
+    // shifted = true if Shift was held (needed for tank second hit)
+    tryHitLetter(letter, shifted) {
         letter = letter.toUpperCase();
 
-        // First check for swarm groups — one keypress kills all in the group
+        // Swarms: each keypress kills ONE unit from the group (not all)
         for (let i = 0; i < this.list.length; i++) {
             const enemy = this.list[i];
-            if (enemy.letter === letter && enemy.alive && enemy.type === 'swarm' && enemy.swarmGroup > 0) {
-                // Find all enemies in this swarm group
-                const group = enemy.swarmGroup;
-                const killed = [];
-                for (let j = this.list.length - 1; j >= 0; j--) {
-                    const e = this.list[j];
-                    if (e.swarmGroup === group && e.alive) {
-                        e.alive = false;
-                        Particles.spawn(e.x, e.y, e.bodyColor, 6);
-                        killed.push({ ...e });
-                        this.list.splice(j, 1);
-                    }
-                }
+            if (enemy.letter === letter && enemy.alive && enemy.type === 'swarm') {
+                enemy.alive = false;
+                Particles.spawn(enemy.x, enemy.y, enemy.bodyColor, 6);
+                const hitEnemy = { ...enemy };
+                this.list.splice(i, 1);
                 this.listChanged = true;
-                // Return the first one as the "hit" enemy; caller gets points once
-                // but the visual effect is a big multi-explosion
-                if (killed.length > 0) {
-                    killed[0]._swarmCount = killed.length;
-                    return killed[0];
-                }
+                return hitEnemy;
             }
         }
 
-        // Regular enemies (walker, sprinter, tank)
+        // Tanks: two-phase activation
+        // Phase 1 (not damaged): normal keypress (unshifted) → damage
+        // Phase 2 (damaged): shifted keypress (Shift+letter) → destroy
         for (let i = 0; i < this.list.length; i++) {
             const enemy = this.list[i];
-            if (enemy.letter === letter && enemy.alive) {
-                enemy.currentHits++;
-
-                if (enemy.currentHits >= enemy.maxHits) {
-                    // Destroyed
+            if (enemy.letter === letter && enemy.alive && enemy.type === 'tank') {
+                if (!enemy.damaged && !shifted) {
+                    // Phase 1: lowercase hit — damage but don't destroy
+                    enemy.damaged = true;
+                    enemy.needsShift = true;
+                    enemy.damageFlash = createFlash(0.3);
+                    return { _tankDamaged: true, letter: enemy.letter, x: enemy.x, y: enemy.y, pathProgress: enemy.pathProgress };
+                } else if (enemy.damaged && shifted) {
+                    // Phase 2: uppercase hit — destroy
                     enemy.alive = false;
                     Particles.spawn(enemy.x, enemy.y, enemy.bodyColor, 8);
                     const hitEnemy = { ...enemy };
                     this.list.splice(i, 1);
                     this.listChanged = true;
                     return hitEnemy;
-                } else {
-                    // Tank: damaged but not destroyed
-                    enemy.damaged = true;
-                    enemy.damageFlash = createFlash(0.3);
-                    // Return a special marker so the game knows a hit landed
-                    return { _tankDamaged: true, letter: enemy.letter, x: enemy.x, y: enemy.y, pathProgress: enemy.pathProgress };
                 }
+                // Wrong phase (shifted on undamaged, or unshifted on damaged) — no hit
+                continue;
+            }
+        }
+
+        // Regular enemies (walker, sprinter)
+        for (let i = 0; i < this.list.length; i++) {
+            const enemy = this.list[i];
+            if (enemy.letter === letter && enemy.alive && enemy.type !== 'tank' && enemy.type !== 'swarm') {
+                enemy.alive = false;
+                Particles.spawn(enemy.x, enemy.y, enemy.bodyColor, 8);
+                const hitEnemy = { ...enemy };
+                this.list.splice(i, 1);
+                this.listChanged = true;
+                return hitEnemy;
             }
         }
         return null;
@@ -291,8 +294,9 @@ const Enemies = {
                 ctx.fillRect(ex + baseSize * 0.7, ey - hornH, hornW, hornH);
             }
 
-            // Tank damage crack indicator
+            // Tank damage crack + Shift indicator
             if (enemy.damaged && enemy.type === 'tank') {
+                // Crack
                 ctx.strokeStyle = '#FFD700';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -300,6 +304,20 @@ const Enemies = {
                 ctx.lineTo(ex + baseSize * 0.5, ey + baseSize * 0.45);
                 ctx.lineTo(ex + baseSize * 0.4, ey + baseSize * 0.7);
                 ctx.stroke();
+
+                // Pulsing Shift arrow indicator above the tank
+                const arrowPulse = 0.8 + Math.sin(time * 8) * 0.2;
+                const arrowSize = Math.max(8, baseSize * 0.3) * arrowPulse;
+                const arrowX = enemy.x;
+                const arrowY = ey - arrowSize * 1.2;
+                // Draw up-arrow (blocky)
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(arrowX - arrowSize * 0.15, arrowY, arrowSize * 0.3, arrowSize * 0.6);
+                ctx.fillRect(arrowX - arrowSize * 0.4, arrowY + arrowSize * 0.2, arrowSize * 0.8, arrowSize * 0.3);
+                // Small "SHIFT" label
+                const shiftLabelSize = Math.max(5, baseSize * 0.15);
+                drawText(ctx, 'SHIFT', arrowX, arrowY - shiftLabelSize * 0.8,
+                    shiftLabelSize, '#FFD700', 'center', 1);
             }
 
             // Eyes (not for swarm — too small)

@@ -19,6 +19,7 @@ const Game = {
     input: {
         keysPressed: {},
         keysDown: {},
+        shiftedKeys: {},    // keys pressed with Shift held this frame
         mouseX: 0,
         mouseY: 0,
         mouseClicked: false,
@@ -59,6 +60,10 @@ const Game = {
             if (key.length === 1 && key >= 'A' && key <= 'Z') {
                 this.input.keysPressed[key] = true;
                 this.input.keysDown[key] = true;
+                // Track if Shift was held for this keypress (used by tank mechanic)
+                if (e.shiftKey) {
+                    this.input.shiftedKeys[key] = true;
+                }
             }
             if (e.key === 'Escape') {
                 if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
@@ -109,9 +114,16 @@ const Game = {
     // Touch-to-keyboard: check if tap lands on a keyboard key
     handleTouchKeyboard(x, y) {
         if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
-            const letter = Keyboard.getKeyAt(x, y);
-            if (letter) {
-                this.input.keysPressed[letter] = true;
+            const result = Keyboard.getKeyAt(x, y);
+            if (result === 'SHIFT') {
+                // Toggle Shift — stays active until a letter is tapped
+                Keyboard.shiftActive = !Keyboard.shiftActive;
+            } else if (result) {
+                this.input.keysPressed[result] = true;
+                if (Keyboard.shiftActive) {
+                    this.input.shiftedKeys[result] = true;
+                    Keyboard.shiftActive = false; // auto-release after one use
+                }
             }
         }
     },
@@ -204,6 +216,7 @@ const Game = {
         this.render();
 
         this.input.keysPressed = {};
+        this.input.shiftedKeys = {};
         this.input.mouseClicked = false;
 
         requestAnimationFrame((t) => this.loop(t));
@@ -275,7 +288,8 @@ const Game = {
     updatePlaying(dt) {
         // Process keyboard input
         for (const key in this.input.keysPressed) {
-            LetterMarch.processInput(key);
+            const shifted = !!this.input.shiftedKeys[key];
+            LetterMarch.processInput(key, shifted);
         }
 
         LetterMarch.update(dt);

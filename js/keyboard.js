@@ -15,11 +15,16 @@ const Keyboard = {
     startY: 0,
     gap: 0,
 
+    // Shift key for touch (tank mechanic)
+    shiftActive: false,
+    shiftKey: { x: 0, y: 0, w: 0, h: 0 },
+
     // Dirty flag for highlight optimization
     _lastHighlightKey: '',
 
     init() {
         this.keys = {};
+        this.shiftActive = false;
         for (let r = 0; r < this.rows.length; r++) {
             for (let c = 0; c < this.rows[r].length; c++) {
                 const letter = this.rows[r][c];
@@ -64,6 +69,16 @@ const Keyboard = {
                 key.h = this.keyHeight;
             }
         }
+
+        // Position Shift key to the left of bottom row (Z)
+        const zKey = this.keys['Z'];
+        const shiftW = this.keyWidth * 1.5;
+        this.shiftKey = {
+            x: zKey.x - shiftW - this.gap,
+            y: zKey.y,
+            w: shiftW,
+            h: this.keyHeight,
+        };
     },
 
     flashKey(letter, state) {
@@ -142,6 +157,33 @@ const Keyboard = {
                 key.x + key.w / 2, key.y + key.h / 2,
                 fontSize, COLORS.KEY_TEXT, 'center', 1);
         }
+
+        // Render Shift key
+        const sk = this.shiftKey;
+        const radius = Math.max(2, this.keyWidth * 0.1);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        this.drawRoundedRect(ctx, sk.x + 2, sk.y + 2, sk.w, sk.h, radius);
+
+        // Background — orange when active, dark gray when not
+        ctx.fillStyle = this.shiftActive ? '#DD6600' : COLORS.KEY_NORMAL;
+        this.drawRoundedRect(ctx, sk.x, sk.y, sk.w, sk.h, radius);
+
+        // Border
+        ctx.strokeStyle = this.shiftActive ? '#FF8800' : COLORS.KEY_BORDER;
+        ctx.lineWidth = this.shiftActive ? 2 : 1;
+        this.strokeRoundedRect(ctx, sk.x, sk.y, sk.w, sk.h, radius);
+
+        // Highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        this.drawRoundedRect(ctx, sk.x + 2, sk.y + 2, sk.w - 4, sk.h * 0.4, radius);
+
+        // Up arrow icon + label
+        const shiftFontSize = Math.max(7, this.keyHeight * 0.3);
+        const arrowColor = this.shiftActive ? '#FFFFFF' : COLORS.KEY_TEXT;
+        drawText(ctx, 'SHIFT', sk.x + sk.w / 2, sk.y + sk.h / 2,
+            shiftFontSize, arrowColor, 'center', 1);
     },
 
     drawRoundedRect(ctx, x, y, w, h, r) {
@@ -175,6 +217,10 @@ const Keyboard = {
     },
 
     getKeyAt(px, py) {
+        // Check Shift key first
+        if (pointInRect(px, py, this.shiftKey.x, this.shiftKey.y, this.shiftKey.w, this.shiftKey.h)) {
+            return 'SHIFT';
+        }
         for (const l in this.keys) {
             const key = this.keys[l];
             if (pointInRect(px, py, key.x, key.y, key.w, key.h)) {

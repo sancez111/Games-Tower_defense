@@ -113,34 +113,28 @@ const LetterMarch = {
     },
 
     // Process a letter input (keyboard or touch)
-    processInput(letter) {
+    processInput(letter, shifted) {
         if (this.waveIntroActive) return;
 
-        const hitResult = Enemies.tryHitLetter(letter);
+        const hitResult = Enemies.tryHitLetter(letter, shifted);
         if (hitResult) {
             Keyboard.flashKey(letter, 'CORRECT');
 
-            // Tank damaged but not destroyed — small feedback, no score
+            // Tank damaged but not destroyed — feedback hints at Shift
             if (hitResult._tankDamaged) {
                 ScreenShake.trigger(3, 0.1);
-                FloatingTexts.spawn(hitResult.x, hitResult.y - 20, 'HIT!', '#FFDD44', 12);
+                FloatingTexts.spawn(hitResult.x, hitResult.y - 20, 'Now SHIFT+' + hitResult.letter + '!', '#FFDD44', 10);
                 return;
             }
 
-            // Full kill (walker, sprinter, tank final hit, or swarm group)
-            const swarmCount = hitResult._swarmCount || 1;
-            ScreenShake.trigger(swarmCount > 1 ? 6 : 4, 0.15);
+            // Full kill (walker, sprinter, tank final hit, or individual swarm unit)
+            ScreenShake.trigger(4, 0.15);
 
-            // Score (bonus for swarm multi-kills)
+            // Score
             const points = Progression.scoreKill(hitResult.pathProgress);
-            const totalPoints = swarmCount > 1 ? points * swarmCount : points;
-            if (swarmCount > 1) {
-                Progression.score += points * (swarmCount - 1); // extra swarm points
-            }
 
             // Floating score text
-            const scoreText = swarmCount > 1 ? '+' + totalPoints + ' x' + swarmCount : '+' + totalPoints;
-            FloatingTexts.spawn(hitResult.x, hitResult.y - 20, scoreText, COLORS.SCORE_COLOR, 14);
+            FloatingTexts.spawn(hitResult.x, hitResult.y - 20, '+' + points, COLORS.SCORE_COLOR, 14);
 
             // Combo text
             if (Progression.combo >= 2) {
