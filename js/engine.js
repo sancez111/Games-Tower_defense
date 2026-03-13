@@ -636,6 +636,425 @@ const Game = {
         }
     },
 
+    // ====== WORLD MAP BIOME BACKGROUNDS ======
+
+    _renderForestBG(ctx, zoneStartX, zoneWidth, groundY) {
+        const t = this.time;
+        const h = this.height;
+
+        // Far hills (parallax - move slower)
+        const hillColor = '#3D6B1E';
+        const hillLightColor = '#4E8025';
+        const hillY = groundY - h * 0.18;
+        for (let i = 0; i < 5; i++) {
+            const hx = zoneStartX + i * zoneWidth * 0.22 - zoneWidth * 0.02;
+            const hw = zoneWidth * 0.28;
+            const hh = h * 0.08 + (i % 3) * h * 0.04;
+            ctx.fillStyle = hillColor;
+            ctx.fillRect(hx, hillY - hh, hw, hh + h * 0.2);
+            // Hill highlight
+            ctx.fillStyle = hillLightColor;
+            ctx.fillRect(hx, hillY - hh, hw, hh * 0.3);
+        }
+
+        // Mid-ground trees
+        const treeColors = ['#2D5A1E', '#357A24', '#2A6B1A'];
+        const treeTrunk = '#5C3A1E';
+        for (let i = 0; i < 12; i++) {
+            const tx = zoneStartX + (i / 12) * zoneWidth + zoneWidth * 0.02;
+            const treeH = h * 0.06 + (i % 4) * h * 0.025;
+            const trunkW = h * 0.012;
+            const trunkH = treeH * 0.5;
+            const treeW = h * 0.04 + (i % 3) * h * 0.015;
+            const ty = groundY - trunkH;
+
+            // Trunk
+            ctx.fillStyle = treeTrunk;
+            ctx.fillRect(tx - trunkW / 2, ty, trunkW, trunkH);
+
+            // Canopy layers (blocky triangular shape)
+            ctx.fillStyle = treeColors[i % 3];
+            ctx.fillRect(tx - treeW / 2, ty - treeH, treeW, treeH * 0.4);
+            ctx.fillRect(tx - treeW * 0.7 / 2, ty - treeH * 0.65, treeW * 0.7, treeH * 0.35);
+            ctx.fillRect(tx - treeW * 0.4 / 2, ty - treeH * 0.35, treeW * 0.4, treeH * 0.35);
+        }
+
+        // River/stream near ground
+        const riverY = groundY - h * 0.03;
+        ctx.fillStyle = '#4A8AC4';
+        ctx.fillRect(zoneStartX + zoneWidth * 0.15, riverY, zoneWidth * 0.3, h * 0.02);
+        ctx.fillStyle = '#6AACE4';
+        ctx.fillRect(zoneStartX + zoneWidth * 0.15, riverY, zoneWidth * 0.3, h * 0.006);
+        // River sparkle
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        const sparkleX = zoneStartX + zoneWidth * 0.15 + ((t * 30) % (zoneWidth * 0.28));
+        ctx.fillRect(sparkleX, riverY + h * 0.002, h * 0.015, h * 0.004);
+
+        // Clouds (animated, drifting right)
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        for (let i = 0; i < 4; i++) {
+            const cx = zoneStartX + ((i * zoneWidth * 0.28 + t * 8) % (zoneWidth * 1.1)) - zoneWidth * 0.05;
+            const cy = h * 0.12 + (i % 3) * h * 0.06;
+            const cw = h * 0.08 + (i % 2) * h * 0.04;
+            const ch = h * 0.025;
+            ctx.fillRect(cx, cy, cw, ch);
+            ctx.fillRect(cx + cw * 0.15, cy - ch * 0.6, cw * 0.7, ch * 0.6);
+            ctx.fillRect(cx + cw * 0.3, cy - ch, cw * 0.4, ch * 0.5);
+        }
+
+        // Birds (small V-shapes, animated)
+        ctx.fillStyle = '#2A2A2A';
+        for (let i = 0; i < 3; i++) {
+            const bx = zoneStartX + ((i * zoneWidth * 0.35 + t * 15 + i * 40) % (zoneWidth * 1.2)) - zoneWidth * 0.1;
+            const by = h * 0.08 + (i % 2) * h * 0.07 + Math.sin(t * 2 + i) * h * 0.01;
+            const bw = h * 0.008;
+            ctx.fillRect(bx - bw * 2, by, bw, bw);
+            ctx.fillRect(bx - bw, by - bw, bw, bw);
+            ctx.fillRect(bx + bw, by - bw, bw, bw);
+            ctx.fillRect(bx + bw * 2, by, bw, bw);
+        }
+
+        // Flowers on ground edge
+        const flowerColors = ['#DD4444', '#DDDD44', '#DD44DD', '#4444DD'];
+        for (let i = 0; i < 8; i++) {
+            const fx = zoneStartX + zoneWidth * 0.08 + i * zoneWidth * 0.11;
+            const fy = groundY - h * 0.01;
+            const fs = h * 0.008;
+            ctx.fillStyle = '#44AA22';
+            ctx.fillRect(fx, fy - fs * 2, fs * 0.5, fs * 2);
+            ctx.fillStyle = flowerColors[i % 4];
+            ctx.fillRect(fx - fs * 0.4, fy - fs * 3, fs * 1.3, fs * 1.3);
+        }
+    },
+
+    _renderDesertBG(ctx, zoneStartX, zoneWidth, groundY) {
+        const t = this.time;
+        const h = this.height;
+
+        // Big sun
+        const sunX = zoneStartX + zoneWidth * 0.8;
+        const sunY = h * 0.14;
+        const sunSize = h * 0.07;
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(sunX - sunSize, sunY - sunSize, sunSize * 2, sunSize * 2);
+        // Sun glow
+        ctx.globalAlpha = 0.15 + Math.sin(t * 1.5) * 0.05;
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(sunX - sunSize * 1.5, sunY - sunSize * 1.5, sunSize * 3, sunSize * 3);
+        ctx.globalAlpha = 1;
+        // Sun rays
+        ctx.fillStyle = '#FFE44D';
+        ctx.fillRect(sunX - sunSize * 0.6, sunY - sunSize, sunSize * 1.2, sunSize * 2);
+        ctx.fillRect(sunX - sunSize, sunY - sunSize * 0.6, sunSize * 2, sunSize * 1.2);
+
+        // Sand dunes (far)
+        ctx.fillStyle = '#D4A050';
+        for (let i = 0; i < 4; i++) {
+            const dx = zoneStartX + i * zoneWidth * 0.28 - zoneWidth * 0.04;
+            const dw = zoneWidth * 0.35;
+            const dh = h * 0.06 + (i % 2) * h * 0.03;
+            const dy = groundY - dh - h * 0.08;
+            ctx.fillRect(dx, dy, dw, dh + h * 0.1);
+        }
+        // Dune highlights
+        ctx.fillStyle = '#E0BE7A';
+        for (let i = 0; i < 4; i++) {
+            const dx = zoneStartX + i * zoneWidth * 0.28 - zoneWidth * 0.04;
+            const dw = zoneWidth * 0.35;
+            const dh = h * 0.02;
+            const dy = groundY - h * 0.14 - (i % 2) * h * 0.03;
+            ctx.fillRect(dx, dy, dw * 0.7, dh);
+        }
+
+        // Pyramids
+        const pyrColors = ['#C4A060', '#B08840'];
+        for (let i = 0; i < 2; i++) {
+            const px = zoneStartX + zoneWidth * 0.2 + i * zoneWidth * 0.45;
+            const pBase = h * 0.12 + i * h * 0.03;
+            const pHeight = h * 0.15 + i * h * 0.04;
+            const py = groundY - h * 0.05;
+
+            // Pyramid body (stepped blocks)
+            ctx.fillStyle = pyrColors[i];
+            const steps = 6;
+            for (let s = 0; s < steps; s++) {
+                const ratio = 1 - s / steps;
+                const sw = pBase * ratio;
+                const sh = pHeight / steps;
+                ctx.fillRect(px - sw / 2, py - (s + 1) * sh, sw, sh);
+            }
+            // Light side
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            for (let s = 0; s < steps; s++) {
+                const ratio = 1 - s / steps;
+                const sw = pBase * ratio;
+                const sh = pHeight / steps;
+                ctx.fillRect(px - sw / 2, py - (s + 1) * sh, sw / 2, sh);
+            }
+        }
+
+        // Cacti
+        const cactusColor = '#3A7A2A';
+        const cactusDark = '#2A5A1A';
+        for (let i = 0; i < 6; i++) {
+            const cx = zoneStartX + zoneWidth * 0.05 + i * zoneWidth * 0.16;
+            const cy = groundY;
+            const cw = h * 0.012;
+            const ch = h * 0.04 + (i % 3) * h * 0.015;
+
+            ctx.fillStyle = cactusColor;
+            ctx.fillRect(cx - cw / 2, cy - ch, cw, ch);
+            // Arms
+            if (i % 2 === 0) {
+                ctx.fillRect(cx + cw / 2, cy - ch * 0.6, cw * 0.8, cw);
+                ctx.fillRect(cx + cw / 2 + cw * 0.8, cy - ch * 0.6 - cw * 1.5, cw, cw * 1.5);
+            }
+            if (i % 3 === 0) {
+                ctx.fillRect(cx - cw / 2 - cw * 0.8, cy - ch * 0.4, cw * 0.8, cw);
+                ctx.fillRect(cx - cw / 2 - cw * 0.8 - cw, cy - ch * 0.4 - cw, cw, cw);
+            }
+            ctx.fillStyle = cactusDark;
+            ctx.fillRect(cx - cw / 2, cy - ch, cw * 0.3, ch);
+        }
+
+        // Oasis (small blue pool with palm)
+        const oasisX = zoneStartX + zoneWidth * 0.6;
+        const oasisY = groundY - h * 0.01;
+        ctx.fillStyle = '#4A90C4';
+        ctx.fillRect(oasisX, oasisY, h * 0.08, h * 0.015);
+        ctx.fillStyle = '#6AB0E4';
+        ctx.fillRect(oasisX + h * 0.01, oasisY, h * 0.06, h * 0.006);
+        // Palm tree
+        const palmX = oasisX - h * 0.015;
+        ctx.fillStyle = '#7A5A2A';
+        ctx.fillRect(palmX, oasisY - h * 0.06, h * 0.01, h * 0.06);
+        ctx.fillStyle = '#4A8A2A';
+        ctx.fillRect(palmX - h * 0.02, oasisY - h * 0.07, h * 0.05, h * 0.015);
+        ctx.fillRect(palmX - h * 0.015, oasisY - h * 0.08, h * 0.04, h * 0.012);
+
+        // Sand particles (animated, drifting)
+        ctx.fillStyle = 'rgba(210,180,120,0.4)';
+        for (let i = 0; i < 15; i++) {
+            const sx = zoneStartX + ((i * zoneWidth * 0.08 + t * 20 + i * 17) % (zoneWidth * 1.1)) - zoneWidth * 0.05;
+            const sy = groundY - h * 0.02 - (i % 5) * h * 0.04 + Math.sin(t * 3 + i * 0.7) * h * 0.01;
+            const ss = h * 0.003;
+            ctx.fillRect(sx, sy, ss, ss);
+        }
+    },
+
+    _renderSnowBG(ctx, zoneStartX, zoneWidth, groundY) {
+        const t = this.time;
+        const h = this.height;
+
+        // Mountains (far background)
+        const mtColors = ['#8090A8', '#7888A0'];
+        const mtSnow = '#D8E8F4';
+        for (let i = 0; i < 3; i++) {
+            const mx = zoneStartX + i * zoneWidth * 0.35 - zoneWidth * 0.05;
+            const mBase = zoneWidth * 0.4;
+            const mHeight = h * 0.25 + (i % 2) * h * 0.08;
+            const my = groundY - h * 0.1;
+
+            // Mountain body (stepped)
+            ctx.fillStyle = mtColors[i % 2];
+            const steps = 8;
+            for (let s = 0; s < steps; s++) {
+                const ratio = 1 - s / steps;
+                const sw = mBase * ratio;
+                const sh = mHeight / steps;
+                ctx.fillRect(mx + (mBase - sw) / 2, my - (s + 1) * sh, sw, sh);
+            }
+            // Snow cap (top 30%)
+            ctx.fillStyle = mtSnow;
+            for (let s = Math.floor(steps * 0.7); s < steps; s++) {
+                const ratio = 1 - s / steps;
+                const sw = mBase * ratio;
+                const sh = mHeight / steps;
+                ctx.fillRect(mx + (mBase - sw) / 2, my - (s + 1) * sh, sw, sh);
+            }
+        }
+
+        // Pine trees
+        const pineGreen = '#2A5A4A';
+        const pineDark = '#1A3A2A';
+        for (let i = 0; i < 10; i++) {
+            const px = zoneStartX + (i / 10) * zoneWidth + zoneWidth * 0.03;
+            const pTreeH = h * 0.05 + (i % 3) * h * 0.02;
+            const pw = h * 0.025 + (i % 2) * h * 0.008;
+            const py = groundY;
+
+            // Trunk
+            ctx.fillStyle = '#5A4030';
+            ctx.fillRect(px - h * 0.005, py - pTreeH * 0.3, h * 0.01, pTreeH * 0.3);
+
+            // Canopy layers (triangular blocky)
+            ctx.fillStyle = pineGreen;
+            ctx.fillRect(px - pw / 2, py - pTreeH, pw, pTreeH * 0.3);
+            ctx.fillRect(px - pw * 0.7 / 2, py - pTreeH * 0.75, pw * 0.7, pTreeH * 0.25);
+            ctx.fillRect(px - pw * 0.45 / 2, py - pTreeH * 0.5, pw * 0.45, pTreeH * 0.2);
+
+            // Snow on top
+            ctx.fillStyle = '#E8F0F8';
+            ctx.fillRect(px - pw * 0.3 / 2, py - pTreeH, pw * 0.3, pTreeH * 0.08);
+            ctx.fillRect(px - pw / 2, py - pTreeH, pw, pTreeH * 0.04);
+        }
+
+        // Frozen lake
+        const lakeX = zoneStartX + zoneWidth * 0.35;
+        const lakeW = zoneWidth * 0.25;
+        const lakeY = groundY - h * 0.02;
+        ctx.fillStyle = '#A0C8E8';
+        ctx.fillRect(lakeX, lakeY, lakeW, h * 0.02);
+        ctx.fillStyle = '#C0D8F0';
+        ctx.fillRect(lakeX, lakeY, lakeW, h * 0.006);
+        // Ice cracks
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect(lakeX + lakeW * 0.2, lakeY + h * 0.004, lakeW * 0.15, h * 0.002);
+        ctx.fillRect(lakeX + lakeW * 0.5, lakeY + h * 0.008, lakeW * 0.2, h * 0.002);
+
+        // Snowflakes (animated, falling)
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        for (let i = 0; i < 25; i++) {
+            const sfx = zoneStartX + ((i * zoneWidth * 0.043 + Math.sin(t * 0.5 + i * 0.8) * 15) % zoneWidth);
+            const sfy = ((i * h * 0.055 + t * 18 + i * 7) % (groundY * 1.05));
+            const sfs = h * 0.003 + (i % 3) * h * 0.002;
+            ctx.fillRect(sfx, sfy, sfs, sfs);
+        }
+
+        // Aurora borealis (animated color bands at top)
+        const auroraColors = [
+            'rgba(100,220,150,0.12)',
+            'rgba(80,180,220,0.10)',
+            'rgba(150,100,220,0.08)',
+            'rgba(100,220,200,0.10)',
+        ];
+        for (let i = 0; i < 4; i++) {
+            const ay = h * 0.03 + i * h * 0.025;
+            const aHeight = h * 0.02;
+            const aOffset = Math.sin(t * 0.4 + i * 1.2) * zoneWidth * 0.05;
+            ctx.fillStyle = auroraColors[i];
+            ctx.fillRect(zoneStartX + zoneWidth * 0.1 + aOffset, ay, zoneWidth * 0.8, aHeight);
+            ctx.fillRect(zoneStartX + zoneWidth * 0.2 - aOffset * 0.5, ay + aHeight * 0.3, zoneWidth * 0.6, aHeight * 0.5);
+        }
+    },
+
+    _renderLavaBG(ctx, zoneStartX, zoneWidth, groundY) {
+        const t = this.time;
+        const h = this.height;
+
+        // Volcanic mountains
+        const volcanoDark = '#2A1A0A';
+        const volcanoMid = '#3A2A1A';
+        for (let i = 0; i < 3; i++) {
+            const vx = zoneStartX + i * zoneWidth * 0.35;
+            const vBase = zoneWidth * 0.38;
+            const vHeight = h * 0.22 + (i % 2) * h * 0.06;
+            const vy = groundY - h * 0.05;
+
+            ctx.fillStyle = volcanoDark;
+            const steps = 7;
+            for (let s = 0; s < steps; s++) {
+                const ratio = 1 - s / steps;
+                const sw = vBase * ratio;
+                const sh = vHeight / steps;
+                ctx.fillRect(vx + (vBase - sw) / 2, vy - (s + 1) * sh, sw, sh);
+            }
+            // Dark shading
+            ctx.fillStyle = volcanoMid;
+            for (let s = 0; s < steps; s++) {
+                const ratio = 1 - s / steps;
+                const sw = vBase * ratio;
+                const sh = vHeight / steps;
+                ctx.fillRect(vx + (vBase - sw) / 2, vy - (s + 1) * sh, sw / 2, sh);
+            }
+
+            // Main volcano (index 1) has eruption crater
+            if (i === 1) {
+                // Lava glow at top
+                const craterX = vx + vBase * 0.35;
+                const craterY = vy - vHeight;
+                ctx.globalAlpha = 0.5 + Math.sin(t * 2) * 0.2;
+                ctx.fillStyle = '#FF4400';
+                ctx.fillRect(craterX, craterY - h * 0.01, vBase * 0.1, h * 0.02);
+                ctx.fillStyle = '#FF6600';
+                ctx.fillRect(craterX + vBase * 0.02, craterY, vBase * 0.06, h * 0.01);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Lava pools on ground
+        for (let i = 0; i < 4; i++) {
+            const lx = zoneStartX + zoneWidth * 0.1 + i * zoneWidth * 0.22;
+            const ly = groundY - h * 0.015;
+            const lw = h * 0.06 + (i % 2) * h * 0.03;
+            const lh = h * 0.015;
+
+            // Lava base
+            ctx.fillStyle = '#CC3300';
+            ctx.fillRect(lx, ly, lw, lh);
+            // Bright surface
+            ctx.globalAlpha = 0.6 + Math.sin(t * 2.5 + i * 1.5) * 0.3;
+            ctx.fillStyle = '#FF6600';
+            ctx.fillRect(lx + lw * 0.1, ly, lw * 0.8, lh * 0.5);
+            ctx.fillStyle = '#FFAA00';
+            ctx.fillRect(lx + lw * 0.2, ly + lh * 0.1, lw * 0.3, lh * 0.3);
+            ctx.globalAlpha = 1;
+        }
+
+        // Ground cracks (glowing)
+        ctx.globalAlpha = 0.3 + Math.sin(t * 1.8) * 0.15;
+        ctx.fillStyle = '#FF4400';
+        for (let i = 0; i < 8; i++) {
+            const cx = zoneStartX + zoneWidth * 0.05 + i * zoneWidth * 0.12;
+            const cy = groundY - h * 0.005;
+            ctx.fillRect(cx, cy, h * 0.025 + (i % 3) * h * 0.01, h * 0.003);
+            ctx.fillRect(cx + h * 0.01, cy - h * 0.008, h * 0.003, h * 0.012);
+        }
+        ctx.globalAlpha = 1;
+
+        // Stalactites hanging from top
+        ctx.fillStyle = '#3A2A1A';
+        for (let i = 0; i < 7; i++) {
+            const sx = zoneStartX + zoneWidth * 0.06 + i * zoneWidth * 0.13;
+            const sl = h * 0.03 + (i % 3) * h * 0.02;
+            const sw = h * 0.01 + (i % 2) * h * 0.005;
+            ctx.fillRect(sx - sw / 2, 0, sw, sl);
+            // Taper
+            ctx.fillRect(sx - sw * 0.3 / 2, sl, sw * 0.3, sl * 0.3);
+        }
+
+        // Smoke/embers rising (animated)
+        for (let i = 0; i < 10; i++) {
+            const ex = zoneStartX + zoneWidth * 0.1 + ((i * zoneWidth * 0.09 + Math.sin(t + i * 2) * 8) % (zoneWidth * 0.85));
+            const ey = groundY - ((t * 25 + i * h * 0.06) % (groundY * 0.7));
+            const es = h * 0.004 + (i % 3) * h * 0.002;
+            const alpha = Math.max(0, 0.5 - ey / (groundY * 0.7) * 0.5);
+            if (i % 2 === 0) {
+                ctx.fillStyle = `rgba(255,80,0,${alpha})`;
+            } else {
+                ctx.fillStyle = `rgba(100,100,100,${alpha * 0.6})`;
+            }
+            ctx.fillRect(ex, ey, es, es);
+        }
+
+        // Fire particles at lava pools
+        ctx.fillStyle = '#FFAA00';
+        for (let i = 0; i < 6; i++) {
+            const fpx = zoneStartX + zoneWidth * 0.15 + i * zoneWidth * 0.14;
+            const fpy = groundY - h * 0.02 - Math.abs(Math.sin(t * 4 + i * 1.3)) * h * 0.025;
+            const fps = h * 0.004;
+            ctx.globalAlpha = 0.5 + Math.sin(t * 5 + i) * 0.3;
+            ctx.fillRect(fpx, fpy, fps, fps);
+        }
+        ctx.globalAlpha = 1;
+
+        // Dark ambient overlay at top (cavern feel)
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(zoneStartX, 0, zoneWidth, h * 0.06);
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(zoneStartX, h * 0.06, zoneWidth, h * 0.04);
+    },
+
     renderWorldMap(ctx) {
         const wm = this.worldMap;
         const worldNames = ['forest', 'desert', 'snow', 'lava'];
@@ -657,12 +1076,24 @@ const Game = {
             grad.addColorStop(0.6, theme.skyBottom);
             grad.addColorStop(1, theme.dirt);
             ctx.fillStyle = grad;
-            ctx.fillRect(Math.max(0, zoneStartX), 0,
-                Math.min(zoneWidth, this.width - Math.max(0, zoneStartX)), this.height);
+            const clipX = Math.max(0, zoneStartX);
+            const clipW = Math.min(zoneWidth, this.width - clipX);
+            ctx.fillRect(clipX, 0, clipW, this.height);
+
+            // Biome-specific background scenery
+            const groundY = this.height * 0.78;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(clipX, 0, clipW, this.height);
+            ctx.clip();
+            if (worldNames[w] === 'forest') this._renderForestBG(ctx, zoneStartX, zoneWidth, groundY);
+            else if (worldNames[w] === 'desert') this._renderDesertBG(ctx, zoneStartX, zoneWidth, groundY);
+            else if (worldNames[w] === 'snow') this._renderSnowBG(ctx, zoneStartX, zoneWidth, groundY);
+            else if (worldNames[w] === 'lava') this._renderLavaBG(ctx, zoneStartX, zoneWidth, groundY);
+            ctx.restore();
 
             // Ground blocks at bottom
             const blockSize = Math.max(20, this.height * 0.04);
-            const groundY = this.height * 0.78;
             for (let x = Math.max(0, zoneStartX); x < Math.min(zoneEndX, this.width); x += blockSize) {
                 ctx.fillStyle = theme.grass;
                 ctx.fillRect(x, groundY, blockSize, blockSize);
@@ -670,6 +1101,17 @@ const Game = {
                 ctx.fillRect(x, groundY, blockSize, blockSize * 0.3);
                 ctx.fillStyle = theme.dirt;
                 ctx.fillRect(x, groundY + blockSize, blockSize, this.height - groundY - blockSize);
+            }
+
+            // Zone transition gradient (blend edges between zones)
+            const transW = 50;
+            if (w > 0) {
+                const prevTheme = WORLD_THEMES[worldNames[w - 1]];
+                const tGrad = ctx.createLinearGradient(zoneStartX - transW / 2, 0, zoneStartX + transW / 2, 0);
+                tGrad.addColorStop(0, prevTheme.skyBottom + '80');
+                tGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = tGrad;
+                ctx.fillRect(zoneStartX - transW / 2, 0, transW, this.height);
             }
 
             // World label
