@@ -7,8 +7,8 @@ const POWER_TYPES = {
     shield:    { name: 'Shield',     color: '#00CCCC', darkColor: '#009999', unlockLevel: 5,  icon: 'S' },
     slowClock: { name: 'Slow',       color: '#6699FF', darkColor: '#4477CC', unlockLevel: 7,  icon: 'C' },
     blizzard:  { name: 'Blizzard',   color: '#CCDDFF', darkColor: '#99AACC', unlockLevel: 9,  icon: 'B' },
-    lavaMoat:  { name: 'Lava',       color: '#FF3300', darkColor: '#CC2200', unlockLevel: 14, icon: 'L' },
     dragon:    { name: 'Dragon',     color: '#FFD700', darkColor: '#CCA800', unlockLevel: 12, icon: 'D' },
+    lavaMoat:  { name: 'Lava',       color: '#FF3300', darkColor: '#CC2200', unlockLevel: 15, icon: 'L' },
 };
 
 const POWER_KEYS = ['fireball', 'shield', 'slowClock', 'blizzard', 'lavaMoat', 'dragon'];

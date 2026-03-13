@@ -96,7 +96,7 @@
 
 ---
 
-## Phase 2d: World System ← CURRENT
+## Phase 2d: World System ← COMPLETE
 **Goal**: 4 themed worlds with 16 levels and a Mario-style world map
 
 **Deliverables**:
@@ -106,9 +106,10 @@
 - Mario-style scrollable world map with dotted paths connecting level nodes
 - Animated decorations: snowflakes in Snow, lava glow in Lava
 - Per-world cave and castle visuals
-- 2 new levels (15: Fire Gauntlet, 16: Final Stand)
+- 2 new levels (4: Forest Master, 15: Fire Gauntlet)
+- Power unlock levels updated for 16-level system
 
-**Status**: In progress — see PHASE2D.md
+**Status**: Complete — see PHASE2D.md
 
 ---
 

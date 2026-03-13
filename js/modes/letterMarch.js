@@ -8,10 +8,20 @@ const LetterMarch = {
     waveComplete: false,
     levelComplete: false,
 
+    // Decoration cache for current level
+    decorations: [],
+    // Animated effects (snowflakes, fire particles)
+    worldEffects: [],
+
     init(levelIndex) {
         Progression.startLevel(levelIndex);
-        Grid.init();
+
+        // Set world theme BEFORE grid init so colors are correct
         const levelDef = Progression.getLevelDef();
+        currentWorldTheme = WORLD_THEMES[levelDef.world || 'forest'];
+        Game.cacheSkyGradient();
+
+        Grid.init();
         Path.init(levelDef.path || null);
         Enemies.init();
         Powers.init();
@@ -24,6 +34,10 @@ const LetterMarch = {
         this.levelComplete = false;
         this._isNewBest = false;
         this._completionTime = 0;
+
+        // Generate world decorations
+        this.generateDecorations();
+        this.worldEffects = [];
 
         // Load the first wave
         this.startWaveIntro();
@@ -49,7 +63,295 @@ const LetterMarch = {
         Powers.onWaveStart();
     },
 
+    // Generate random decorations for the current world
+    generateDecorations() {
+        this.decorations = [];
+        const world = Progression.getLevelDef().world || 'forest';
+        const pathTiles = {};
+
+        // Build a set of path tiles to avoid placing decorations on them
+        for (let r = 0; r < Grid.rows; r++) {
+            for (let c = 0; c < Grid.cols; c++) {
+                if (Grid.tiles[r] && Grid.tiles[r][c] === TILES.PATH) {
+                    pathTiles[r + ',' + c] = true;
+                    // Also mark neighbors to keep decorations away from path edges
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            pathTiles[(r + dr) + ',' + (c + dc)] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Collect valid positions (non-path grass tiles, not edges)
+        const validPositions = [];
+        for (let r = 1; r < Grid.rows - 2; r++) {
+            for (let c = 1; c < Grid.cols - 1; c++) {
+                if (!pathTiles[r + ',' + c]) {
+                    validPositions.push({ r: r, c: c });
+                }
+            }
+        }
+
+        // Shuffle and pick some positions for decorations
+        const count = Math.min(Math.floor(validPositions.length * 0.25), 20);
+        for (let i = validPositions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = validPositions[i];
+            validPositions[i] = validPositions[j];
+            validPositions[j] = tmp;
+        }
+
+        for (let i = 0; i < count; i++) {
+            const pos = validPositions[i];
+            let type;
+            if (world === 'forest') {
+                type = Math.random() > 0.4 ? 'tree' : (Math.random() > 0.5 ? 'bush' : 'flower');
+            } else if (world === 'desert') {
+                type = Math.random() > 0.4 ? 'cactus' : (Math.random() > 0.5 ? 'rock' : 'dune');
+            } else if (world === 'snow') {
+                type = Math.random() > 0.4 ? 'snowTree' : (Math.random() > 0.5 ? 'iceCrystal' : 'snowPile');
+            } else if (world === 'lava') {
+                type = Math.random() > 0.4 ? 'lavaPool' : (Math.random() > 0.5 ? 'crack' : 'crystal');
+            }
+            this.decorations.push({
+                r: pos.r,
+                c: pos.c,
+                type: type,
+                variant: Math.random(),
+            });
+        }
+    },
+
+    // Render world decorations on top of the grid
+    renderDecorations(ctx) {
+        const ts = Grid.tileSize;
+        const world = Progression.getLevelDef().world || 'forest';
+
+        for (let i = 0; i < this.decorations.length; i++) {
+            const d = this.decorations[i];
+            const px = Grid.offsetX + d.c * ts;
+            const py = Grid.offsetY + d.r * ts;
+
+            if (world === 'forest') {
+                this._renderForestDecor(ctx, d, px, py, ts);
+            } else if (world === 'desert') {
+                this._renderDesertDecor(ctx, d, px, py, ts);
+            } else if (world === 'snow') {
+                this._renderSnowDecor(ctx, d, px, py, ts);
+            } else if (world === 'lava') {
+                this._renderLavaDecor(ctx, d, px, py, ts);
+            }
+        }
+    },
+
+    _renderForestDecor(ctx, d, px, py, ts) {
+        if (d.type === 'tree') {
+            // Trunk
+            ctx.fillStyle = '#6B4226';
+            ctx.fillRect(px + ts * 0.35, py + ts * 0.4, ts * 0.3, ts * 0.6);
+            // Canopy
+            ctx.fillStyle = '#3A7D20';
+            ctx.fillRect(px + ts * 0.1, py - ts * 0.1, ts * 0.8, ts * 0.55);
+            ctx.fillStyle = '#4D9930';
+            ctx.fillRect(px + ts * 0.2, py - ts * 0.2, ts * 0.6, ts * 0.35);
+        } else if (d.type === 'bush') {
+            ctx.fillStyle = '#3A7D20';
+            ctx.fillRect(px + ts * 0.15, py + ts * 0.5, ts * 0.7, ts * 0.4);
+            ctx.fillStyle = '#4D9930';
+            ctx.fillRect(px + ts * 0.25, py + ts * 0.4, ts * 0.5, ts * 0.3);
+        } else if (d.type === 'flower') {
+            // Stem
+            ctx.fillStyle = '#3A7D20';
+            ctx.fillRect(px + ts * 0.45, py + ts * 0.5, ts * 0.1, ts * 0.4);
+            // Petal colors based on variant
+            const colors = ['#FF6688', '#FFDD44', '#FF8844', '#BB66FF'];
+            ctx.fillStyle = colors[Math.floor(d.variant * colors.length)];
+            ctx.fillRect(px + ts * 0.35, py + ts * 0.35, ts * 0.3, ts * 0.2);
+        }
+    },
+
+    _renderDesertDecor(ctx, d, px, py, ts) {
+        if (d.type === 'cactus') {
+            // Main body
+            ctx.fillStyle = '#4A8B3A';
+            ctx.fillRect(px + ts * 0.35, py + ts * 0.1, ts * 0.3, ts * 0.85);
+            // Arms
+            if (d.variant > 0.5) {
+                ctx.fillRect(px + ts * 0.1, py + ts * 0.3, ts * 0.25, ts * 0.15);
+                ctx.fillRect(px + ts * 0.1, py + ts * 0.15, ts * 0.15, ts * 0.3);
+            }
+            if (d.variant < 0.7) {
+                ctx.fillRect(px + ts * 0.65, py + ts * 0.4, ts * 0.25, ts * 0.15);
+                ctx.fillRect(px + ts * 0.75, py + ts * 0.25, ts * 0.15, ts * 0.3);
+            }
+        } else if (d.type === 'rock') {
+            ctx.fillStyle = '#8B7355';
+            ctx.fillRect(px + ts * 0.2, py + ts * 0.6, ts * 0.6, ts * 0.35);
+            ctx.fillStyle = '#9B8365';
+            ctx.fillRect(px + ts * 0.3, py + ts * 0.5, ts * 0.4, ts * 0.2);
+        } else if (d.type === 'dune') {
+            ctx.fillStyle = '#E0BE7A';
+            ctx.fillRect(px + ts * 0.05, py + ts * 0.65, ts * 0.9, ts * 0.3);
+            ctx.fillStyle = '#D4A65A';
+            ctx.fillRect(px + ts * 0.15, py + ts * 0.55, ts * 0.7, ts * 0.15);
+        }
+    },
+
+    _renderSnowDecor(ctx, d, px, py, ts) {
+        if (d.type === 'snowTree') {
+            // Trunk
+            ctx.fillStyle = '#6B5B4B';
+            ctx.fillRect(px + ts * 0.35, py + ts * 0.4, ts * 0.3, ts * 0.6);
+            // Dark green canopy
+            ctx.fillStyle = '#2A5A1A';
+            ctx.fillRect(px + ts * 0.1, py - ts * 0.1, ts * 0.8, ts * 0.55);
+            // Snow on top
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(px + ts * 0.1, py - ts * 0.15, ts * 0.8, ts * 0.15);
+            ctx.fillRect(px + ts * 0.2, py - ts * 0.25, ts * 0.6, ts * 0.12);
+        } else if (d.type === 'iceCrystal') {
+            ctx.fillStyle = '#A0D8F0';
+            ctx.fillRect(px + ts * 0.4, py + ts * 0.2, ts * 0.2, ts * 0.6);
+            ctx.fillRect(px + ts * 0.25, py + ts * 0.35, ts * 0.5, ts * 0.2);
+            ctx.fillStyle = '#C0E8FF';
+            ctx.fillRect(px + ts * 0.42, py + ts * 0.25, ts * 0.16, ts * 0.1);
+        } else if (d.type === 'snowPile') {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(px + ts * 0.1, py + ts * 0.65, ts * 0.8, ts * 0.25);
+            ctx.fillStyle = '#E0E8F0';
+            ctx.fillRect(px + ts * 0.2, py + ts * 0.55, ts * 0.6, ts * 0.15);
+        }
+    },
+
+    _renderLavaDecor(ctx, d, px, py, ts) {
+        const time = Game.time;
+        if (d.type === 'lavaPool') {
+            // Animated glow
+            const pulse = 0.6 + Math.sin(time * 3 + d.variant * 10) * 0.2;
+            ctx.globalAlpha = pulse;
+            ctx.fillStyle = '#CC4400';
+            ctx.fillRect(px + ts * 0.1, py + ts * 0.3, ts * 0.8, ts * 0.5);
+            ctx.fillStyle = '#FF6600';
+            ctx.fillRect(px + ts * 0.2, py + ts * 0.4, ts * 0.6, ts * 0.3);
+            // Bright center
+            ctx.fillStyle = '#FFAA00';
+            const cx = px + ts * 0.35 + Math.sin(time * 2 + d.variant * 5) * ts * 0.1;
+            ctx.fillRect(cx, py + ts * 0.45, ts * 0.3, ts * 0.15);
+            ctx.globalAlpha = 1;
+        } else if (d.type === 'crack') {
+            ctx.strokeStyle = '#FF4400';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px + ts * 0.2, py + ts * 0.3);
+            ctx.lineTo(px + ts * 0.5, py + ts * 0.5);
+            ctx.lineTo(px + ts * 0.4, py + ts * 0.7);
+            ctx.lineTo(px + ts * 0.7, py + ts * 0.85);
+            ctx.stroke();
+            // Glow in cracks
+            ctx.globalAlpha = 0.3 + Math.sin(time * 4 + d.variant * 8) * 0.15;
+            ctx.strokeStyle = '#FFAA00';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        } else if (d.type === 'crystal') {
+            // Glowing crystal
+            const glow = 0.5 + Math.sin(time * 2.5 + d.variant * 6) * 0.3;
+            ctx.globalAlpha = glow;
+            ctx.fillStyle = '#FF8800';
+            ctx.fillRect(px + ts * 0.35, py + ts * 0.2, ts * 0.3, ts * 0.7);
+            ctx.fillStyle = '#FFAA44';
+            ctx.fillRect(px + ts * 0.38, py + ts * 0.25, ts * 0.24, ts * 0.15);
+            ctx.globalAlpha = 1;
+        }
+    },
+
+    // Update animated world effects (snowflakes, fire particles)
+    updateWorldEffects(dt) {
+        const world = Progression.getLevelDef().world || 'forest';
+        const gameH = Game.height * CONFIG.GAME_AREA_RATIO;
+
+        // Spawn new effects
+        if (world === 'snow') {
+            // Spawn snowflakes
+            if (Math.random() > 0.6) {
+                this.worldEffects.push({
+                    type: 'snowflake',
+                    x: Math.random() * Game.width,
+                    y: -5,
+                    vx: randFloat(-15, 15),
+                    vy: randFloat(30, 80),
+                    size: randFloat(2, 5),
+                    life: 15,
+                });
+            }
+        } else if (world === 'lava') {
+            // Spawn fire particles from lava pool decorations
+            if (Math.random() > 0.85 && this.decorations.length > 0) {
+                const lavaPools = this.decorations.filter(function(d) { return d.type === 'lavaPool'; });
+                if (lavaPools.length > 0) {
+                    const pool = lavaPools[Math.floor(Math.random() * lavaPools.length)];
+                    const ts = Grid.tileSize;
+                    const px = Grid.offsetX + pool.c * ts + ts * 0.5;
+                    const py = Grid.offsetY + pool.r * ts + ts * 0.4;
+                    this.worldEffects.push({
+                        type: 'fireParticle',
+                        x: px + randFloat(-ts * 0.3, ts * 0.3),
+                        y: py,
+                        vx: randFloat(-8, 8),
+                        vy: randFloat(-40, -80),
+                        size: randFloat(2, 5),
+                        life: randFloat(0.5, 1.2),
+                        maxLife: 1.2,
+                    });
+                }
+            }
+        }
+
+        // Update existing effects
+        for (let i = this.worldEffects.length - 1; i >= 0; i--) {
+            const e = this.worldEffects[i];
+            e.x += e.vx * dt;
+            e.y += e.vy * dt;
+            e.life -= dt;
+            // Snowflakes: gentle sway
+            if (e.type === 'snowflake') {
+                e.vx += Math.sin(Game.time * 2 + i) * 0.5;
+            }
+            if (e.life <= 0 || e.y > gameH + 10) {
+                this.worldEffects.splice(i, 1);
+            }
+        }
+
+        // Cap max particles
+        if (this.worldEffects.length > 100) {
+            this.worldEffects.splice(0, this.worldEffects.length - 100);
+        }
+    },
+
+    // Render animated world effects
+    renderWorldEffects(ctx) {
+        for (let i = 0; i < this.worldEffects.length; i++) {
+            const e = this.worldEffects[i];
+            if (e.type === 'snowflake') {
+                ctx.globalAlpha = 0.7;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+            } else if (e.type === 'fireParticle') {
+                const alpha = e.maxLife ? clamp(e.life / e.maxLife, 0, 1) : 0.8;
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.fillStyle = Math.random() > 0.5 ? '#FF6600' : '#FFAA00';
+                ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+            }
+        }
+        ctx.globalAlpha = 1;
+    },
+
     update(dt) {
+        // Update world animated effects always (even during wave intro for ambiance)
+        this.updateWorldEffects(dt);
+
         // Wave intro countdown
         if (this.waveIntroActive) {
             // Timer does NOT tick during wave intros
@@ -194,7 +496,9 @@ const LetterMarch = {
         }
 
         Grid.render(ctx, Game.time);
+        this.renderDecorations(ctx);
         Path.render(ctx);
+        this.renderWorldEffects(ctx);
         Enemies.render(ctx, Game.time);
         Powers.render(ctx);
         Particles.render(ctx);

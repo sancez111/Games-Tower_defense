@@ -56,15 +56,16 @@ A Minecraft-style tower defense learning game for young children (age 5+) to rec
 - **Graphics** (later): Gemini AI generates Minecraft-style sprite assets
 
 ## Current Status
-**Phase 2c — Super Powers** (Complete)
-- 6 collectible powers: Fireball, Shield, Slow Clock, Blizzard, Lava Moat, Dragon
-- Power pickups drop from destroyed enemies (~18% chance, Level 3+)
-- Collect pickups by typing the letter shown — reinforces typing practice
-- Power inventory (3 slots) with Alt to cycle, Spacebar to activate
-- One power use per wave for balanced gameplay
-- Touch controls: USE and ROTATE buttons for tablet play
+**Phase 2d — World System** (Complete)
+- 4 themed worlds: Forest (Greenwood), Desert (Sandstone), Snow (Frostpeak), Lava (Netherforge)
+- 16 levels across 4 worlds with progressive difficulty
+- Mario-style scrollable world map with dotted paths and themed zones
+- Per-world tile colors, sky gradients, decorations, cave/castle visuals
+- Animated effects: falling snowflakes (Snow), pulsing lava pools & fire particles (Lava)
+- Forest: blocky trees, bushes, flowers; Desert: cacti, rocks, dunes; Snow: snow trees, ice crystals; Lava: lava pools, cracks, glowing crystals
+- 6 collectible powers: Fireball, Shield, Slow Clock, Blizzard, Dragon, Lava Moat
 - Powers unlock at level milestones (L3, L5, L7, L9, L12, L15)
-- All animations use blocky Minecraft-style particles and effects
-- 4 enemy types: Walker, Sprinter, Tank, Swarm across 14 levels
+- 4 enemy types: Walker, Sprinter, Tank, Swarm
 - Level stopwatch timer with best time tracking
 - Scoring with combos, star ratings, and progressive difficulty
+- Touch/tablet friendly with scrollable world map

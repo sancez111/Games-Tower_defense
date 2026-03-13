@@ -73,26 +73,28 @@ const Grid = {
     },
 
     getTileColor(type) {
+        const theme = currentWorldTheme;
         switch (type) {
-            case TILES.GRASS: return COLORS.GRASS_DARK;
-            case TILES.DIRT: return COLORS.DIRT_DARK;
+            case TILES.GRASS: return theme.grass;
+            case TILES.DIRT: return theme.dirt;
             case TILES.STONE: return COLORS.STONE_DARK;
-            case TILES.PATH: return COLORS.PATH_DARK;
+            case TILES.PATH: return theme.pathDark;
             case TILES.WATER: return COLORS.WATER_DARK;
             case TILES.TOWER_SLOT: return COLORS.STONE_LIGHT;
-            default: return COLORS.GRASS_DARK;
+            default: return theme.grass;
         }
     },
 
     getTileAccent(type) {
+        const theme = currentWorldTheme;
         switch (type) {
-            case TILES.GRASS: return COLORS.GRASS_LIGHT;
-            case TILES.DIRT: return COLORS.DIRT_LIGHT;
+            case TILES.GRASS: return theme.grassLight;
+            case TILES.DIRT: return theme.dirtLight;
             case TILES.STONE: return COLORS.STONE_LIGHT;
-            case TILES.PATH: return COLORS.PATH_LIGHT;
+            case TILES.PATH: return theme.pathLight;
             case TILES.WATER: return COLORS.WATER_LIGHT;
             case TILES.TOWER_SLOT: return COLORS.STONE_DARK;
-            default: return COLORS.GRASS_LIGHT;
+            default: return theme.grassLight;
         }
     },
 

@@ -104,19 +104,38 @@ const Path = {
         const entry = this.waypoints[0];
         const pos = Grid.gridToPixel(entry[0], entry[1]);
         const ts = Grid.tileSize;
+        const theme = currentWorldTheme;
 
-        // Cave frame (dark stone blocks)
-        ctx.fillStyle = COLORS.CAVE_FRAME;
+        // Cave frame
+        ctx.fillStyle = theme.caveFrame;
         ctx.fillRect(pos.x - ts * 0.3, pos.y - ts * 0.3, ts * 0.8, ts * 2.6);
 
         // Cave opening (dark interior)
-        ctx.fillStyle = COLORS.CAVE_DARK;
+        ctx.fillStyle = theme.caveDark;
         ctx.fillRect(pos.x - ts * 0.1, pos.y, ts * 0.5, ts * 2);
 
         // Stone texture on frame
-        ctx.fillStyle = COLORS.STONE_DARK;
+        ctx.fillStyle = theme.caveFrame;
         ctx.fillRect(pos.x - ts * 0.3, pos.y - ts * 0.3, ts * 0.8, ts * 0.2);
         ctx.fillRect(pos.x - ts * 0.3, pos.y + ts * 2.1, ts * 0.8, ts * 0.2);
+
+        // Snow world: icicles hanging from cave top
+        if (theme === WORLD_THEMES.snow) {
+            ctx.fillStyle = '#B0D8F0';
+            for (let i = 0; i < 3; i++) {
+                const ix = pos.x - ts * 0.2 + i * ts * 0.25;
+                const iy = pos.y - ts * 0.1;
+                ctx.fillRect(ix, iy, ts * 0.08, ts * 0.25 + i * ts * 0.05);
+            }
+        }
+
+        // Lava world: lava drip from cave
+        if (theme === WORLD_THEMES.lava) {
+            ctx.fillStyle = '#FF4400';
+            ctx.fillRect(pos.x + ts * 0.05, pos.y + ts * 1.8, ts * 0.15, ts * 0.3);
+            ctx.fillStyle = '#FF6600';
+            ctx.fillRect(pos.x + ts * 0.08, pos.y + ts * 1.85, ts * 0.09, ts * 0.15);
+        }
     },
 
     // Draw castle at the endpoint
@@ -126,34 +145,52 @@ const Path = {
         const ts = Grid.tileSize;
         const cx = pos.x;
         const cy = pos.y - ts * 0.5;
+        const theme = currentWorldTheme;
 
         // Castle main wall
-        ctx.fillStyle = COLORS.CASTLE_WALL;
+        ctx.fillStyle = theme.castleWall;
         ctx.fillRect(cx, cy, ts * 1.5, ts * 3);
 
         // Castle battlements (top)
-        ctx.fillStyle = COLORS.CASTLE_DARK;
+        ctx.fillStyle = theme.castleDark;
         for (let i = 0; i < 3; i++) {
             ctx.fillRect(cx + i * ts * 0.5, cy - ts * 0.4, ts * 0.35, ts * 0.4);
         }
 
+        // Snow world: snow on roof
+        if (theme === WORLD_THEMES.snow) {
+            ctx.fillStyle = '#FFFFFF';
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(cx + i * ts * 0.5, cy - ts * 0.5, ts * 0.35, ts * 0.15);
+            }
+            ctx.fillRect(cx, cy - ts * 0.05, ts * 1.5, ts * 0.1);
+        }
+
         // Castle door
-        ctx.fillStyle = COLORS.CASTLE_DOOR;
+        ctx.fillStyle = theme.castleDoor;
         ctx.fillRect(cx + ts * 0.4, cy + ts * 1.5, ts * 0.7, ts * 1.5);
 
         // Door frame
-        ctx.fillStyle = COLORS.CASTLE_DARK;
+        ctx.fillStyle = theme.castleDark;
         ctx.fillRect(cx + ts * 0.35, cy + ts * 1.45, ts * 0.8, ts * 0.1);
         ctx.fillRect(cx + ts * 0.35, cy + ts * 1.45, ts * 0.1, ts * 1.55);
         ctx.fillRect(cx + ts * 1.05, cy + ts * 1.45, ts * 0.1, ts * 1.55);
 
         // Window
-        ctx.fillStyle = COLORS.SKY_BOTTOM;
+        ctx.fillStyle = theme.windowColor;
         ctx.fillRect(cx + ts * 0.55, cy + ts * 0.5, ts * 0.4, ts * 0.4);
         // Window cross
-        ctx.fillStyle = COLORS.CASTLE_DARK;
+        ctx.fillStyle = theme.castleDark;
         ctx.fillRect(cx + ts * 0.73, cy + ts * 0.5, ts * 0.05, ts * 0.4);
         ctx.fillRect(cx + ts * 0.55, cy + ts * 0.68, ts * 0.4, ts * 0.05);
+
+        // Lava world: glowing windows
+        if (theme === WORLD_THEMES.lava) {
+            ctx.globalAlpha = 0.4 + Math.sin(Game.time * 3) * 0.2;
+            ctx.fillStyle = '#FF6600';
+            ctx.fillRect(cx + ts * 0.55, cy + ts * 0.5, ts * 0.4, ts * 0.4);
+            ctx.globalAlpha = 1;
+        }
     },
 
     // Render path decorations (cave + castle)

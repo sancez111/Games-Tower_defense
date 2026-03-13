@@ -2,12 +2,11 @@
 // Letter Defenders — Progression System
 // ============================================
 
-// Level definitions — 14 levels with per-level paths, enemy types, and difficulty scaling
+// Level definitions — 16 levels across 4 worlds with per-level paths, enemy types, and difficulty scaling
 const LEVELS = [
-    // === LEVELS 1-2: Home Start (F,J,D,K) — Walkers only, long path ===
+    // ============ WORLD 1: FOREST (Greenwood) — Levels 1-4 ============
     {
-        id: 1,
-        name: 'Home Start',
+        id: 1, name: 'Home Start', world: 'forest',
         letters: ['F', 'J'],
         path: PATH_LAYOUTS.longWinding,
         waves: [
@@ -17,8 +16,7 @@ const LEVELS = [
         ]
     },
     {
-        id: 2,
-        name: 'Home Expand',
+        id: 2, name: 'Home Expand', world: 'forest',
         letters: ['F', 'J', 'D', 'K'],
         path: PATH_LAYOUTS.longWinding,
         waves: [
@@ -27,10 +25,8 @@ const LEVELS = [
             { enemies: ['K', 'D', 'J', 'F', 'D', 'K'], spawnInterval: 2.5, enemySpeed: 0.03 },
         ]
     },
-    // === LEVEL 3: Quick Fingers — Introduce Sprinters ===
     {
-        id: 3,
-        name: 'Quick Fingers',
+        id: 3, name: 'Quick Fingers', world: 'forest',
         letters: ['F', 'J', 'D', 'K'],
         path: PATH_LAYOUTS.mediumTwoTurn,
         waves: [
@@ -44,10 +40,26 @@ const LEVELS = [
             ], spawnInterval: 2.8, enemySpeed: 0.03 },
         ]
     },
-    // === LEVELS 4-5: S,L + Sprinters, introduce Tanks ===
     {
-        id: 4,
-        name: 'Home Neighbors',
+        id: 4, name: 'Forest Master', world: 'forest',
+        letters: ['F', 'J', 'D', 'K'],
+        path: PATH_LAYOUTS.shortDirect,
+        waves: [
+            { enemies: ['F', 'J', 'D', 'K', 'F', 'J'], spawnInterval: 2.8, enemySpeed: 0.03 },
+            { enemies: [
+                { letter: 'F', type: 'sprinter' }, 'J', { letter: 'D', type: 'sprinter' }, 'K',
+                'F', { letter: 'J', type: 'sprinter' }
+            ], spawnInterval: 2.5, enemySpeed: 0.032 },
+            { enemies: [
+                { letter: 'K', type: 'sprinter' }, { letter: 'D', type: 'sprinter' },
+                'F', 'J', { letter: 'F', type: 'sprinter' }, 'K', 'D', 'J'
+            ], spawnInterval: 2.2, enemySpeed: 0.035 },
+        ]
+    },
+
+    // ============ WORLD 2: DESERT (Sandstone) — Levels 5-8 ============
+    {
+        id: 5, name: 'Home Neighbors', world: 'desert',
         letters: ['F', 'J', 'D', 'K', 'S', 'L'],
         path: PATH_LAYOUTS.longWinding,
         waves: [
@@ -67,8 +79,7 @@ const LEVELS = [
         ]
     },
     {
-        id: 5,
-        name: 'Tough Letters',
+        id: 6, name: 'Tough Letters', world: 'desert',
         letters: ['F', 'J', 'D', 'K', 'S', 'L'],
         path: PATH_LAYOUTS.longWinding,
         waves: [
@@ -84,10 +95,8 @@ const LEVELS = [
             ], spawnInterval: 2.5, enemySpeed: 0.032 },
         ]
     },
-    // === LEVELS 6-7: A + all types, introduce Swarms ===
     {
-        id: 6,
-        name: 'Home Row',
+        id: 7, name: 'Home Row', world: 'desert',
         letters: ['A', 'S', 'D', 'F', 'J', 'K', 'L'],
         path: PATH_LAYOUTS.mediumTwoTurn,
         waves: [
@@ -107,34 +116,7 @@ const LEVELS = [
         ]
     },
     {
-        id: 7,
-        name: 'Swarm Attack',
-        letters: ['A', 'S', 'D', 'F', 'J', 'K', 'L'],
-        path: PATH_LAYOUTS.longWinding,
-        waves: [
-            { enemies: [
-                'F', 'J', { letter: 'D', type: 'swarm', count: 3 }, 'K'
-            ], spawnInterval: 3.0, enemySpeed: 0.028 },
-            { enemies: [
-                { letter: 'S', type: 'swarm', count: 3 }, 'A', 'L',
-                { letter: 'F', type: 'sprinter' }, { letter: 'J', type: 'swarm', count: 4 }
-            ], spawnInterval: 2.8, enemySpeed: 0.03 },
-            { enemies: [
-                { letter: 'A', type: 'swarm', count: 3 }, { letter: 'K', type: 'tank' },
-                'D', { letter: 'L', type: 'swarm', count: 4 },
-                { letter: 'F', type: 'sprinter' }, 'J'
-            ], spawnInterval: 2.5, enemySpeed: 0.032 },
-            { enemies: [
-                { letter: 'D', type: 'swarm', count: 4 }, { letter: 'S', type: 'tank' },
-                { letter: 'J', type: 'sprinter' }, { letter: 'K', type: 'swarm', count: 3 },
-                'A', 'F', 'L'
-            ], spawnInterval: 2.2, enemySpeed: 0.035 },
-        ]
-    },
-    // === LEVEL 8: Home Master — All types, short path ===
-    {
-        id: 8,
-        name: 'Home Master',
+        id: 8, name: 'Desert Storm', world: 'desert',
         letters: ['A', 'S', 'D', 'F', 'J', 'K', 'L'],
         path: PATH_LAYOUTS.shortDirect,
         waves: [
@@ -162,10 +144,10 @@ const LEVELS = [
             ], spawnInterval: 1.8, enemySpeed: 0.038 },
         ]
     },
-    // === LEVELS 9-12: Top row letters ===
+
+    // ============ WORLD 3: SNOW (Frostpeak) — Levels 9-12 ============
     {
-        id: 9,
-        name: 'Reaching Up',
+        id: 9, name: 'Reaching Up', world: 'snow',
         letters: ['R', 'U', 'F', 'J', 'D', 'K'],
         path: PATH_LAYOUTS.longWinding,
         waves: [
@@ -181,8 +163,7 @@ const LEVELS = [
         ]
     },
     {
-        id: 10,
-        name: 'Climbing Higher',
+        id: 10, name: 'Climbing Higher', world: 'snow',
         letters: ['E', 'I', 'R', 'U', 'F', 'J', 'D', 'K'],
         path: PATH_LAYOUTS.mediumTwoTurn,
         waves: [
@@ -203,8 +184,7 @@ const LEVELS = [
         ]
     },
     {
-        id: 11,
-        name: 'Almost There',
+        id: 11, name: 'Almost There', world: 'snow',
         letters: ['W', 'O', 'E', 'I', 'R', 'U', 'F', 'J'],
         path: PATH_LAYOUTS.mediumTwoTurn,
         waves: [
@@ -225,31 +205,51 @@ const LEVELS = [
         ]
     },
     {
-        id: 12,
-        name: 'Pinky Stretch',
-        letters: ['Q', 'P', 'W', 'O', 'E', 'I', 'R', 'U'],
-        path: PATH_LAYOUTS.shortDirect,
+        id: 12, name: 'Frostpeak Master', world: 'snow',
+        letters: ['Q', 'W', 'E', 'R', 'U', 'I', 'O', 'P', 'F', 'J', 'D', 'K'],
+        path: PATH_LAYOUTS.zigzag,
         waves: [
-            { enemies: ['Q', 'P', 'Q', 'P', 'W'], spawnInterval: 2.8, enemySpeed: 0.035 },
+            { enemies: ['Q', 'P', 'W', 'O', 'E', 'I'], spawnInterval: 2.8, enemySpeed: 0.035 },
             { enemies: [
                 { letter: 'Q', type: 'sprinter' }, 'P', { letter: 'W', type: 'tank' },
-                'O', { letter: 'E', type: 'sprinter' }, 'I'
+                'O', { letter: 'E', type: 'sprinter' }, 'I', 'R', 'U'
             ], spawnInterval: 2.4, enemySpeed: 0.037 },
             { enemies: [
                 { letter: 'P', type: 'swarm', count: 3 }, { letter: 'Q', type: 'tank' },
-                'R', { letter: 'U', type: 'sprinter' }, 'W', 'O'
+                'R', { letter: 'U', type: 'sprinter' }, 'W', 'O', 'F', 'J'
             ], spawnInterval: 2.2, enemySpeed: 0.04 },
             { enemies: [
                 { letter: 'Q', type: 'swarm', count: 4 }, { letter: 'P', type: 'tank' },
                 { letter: 'W', type: 'sprinter' }, { letter: 'O', type: 'sprinter' },
-                'E', 'I', { letter: 'R', type: 'tank' }
+                'E', 'I', { letter: 'R', type: 'tank' }, 'D', 'K'
             ], spawnInterval: 2.0, enemySpeed: 0.042 },
         ]
     },
-    // === LEVEL 13: Top Row Master — Zigzag path, all types ===
+
+    // ============ WORLD 4: LAVA (Netherforge) — Levels 13-16 ============
     {
-        id: 13,
-        name: 'Top Row Master',
+        id: 13, name: 'Pinky Stretch', world: 'lava',
+        letters: ['Q', 'P', 'W', 'O', 'E', 'I', 'R', 'U'],
+        path: PATH_LAYOUTS.shortDirect,
+        waves: [
+            { enemies: ['Q', 'P', 'Q', 'P', 'W', 'O'], spawnInterval: 2.5, enemySpeed: 0.035 },
+            { enemies: [
+                { letter: 'Q', type: 'sprinter' }, { letter: 'P', type: 'sprinter' },
+                { letter: 'W', type: 'tank' }, 'O', 'E', 'I'
+            ], spawnInterval: 2.2, enemySpeed: 0.038 },
+            { enemies: [
+                { letter: 'E', type: 'swarm', count: 3 }, { letter: 'Q', type: 'tank' },
+                { letter: 'P', type: 'sprinter' }, 'R', 'U', 'W'
+            ], spawnInterval: 2.0, enemySpeed: 0.04 },
+            { enemies: [
+                { letter: 'Q', type: 'swarm', count: 4 }, { letter: 'P', type: 'tank' },
+                { letter: 'W', type: 'sprinter' }, { letter: 'O', type: 'sprinter' },
+                'E', 'I', { letter: 'R', type: 'tank' }
+            ], spawnInterval: 1.8, enemySpeed: 0.042 },
+        ]
+    },
+    {
+        id: 14, name: 'Top Row Master', world: 'lava',
         letters: ['Q', 'W', 'E', 'R', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'J', 'K', 'L'],
         path: PATH_LAYOUTS.zigzag,
         waves: [
@@ -279,10 +279,39 @@ const LEVELS = [
             ], spawnInterval: 1.6, enemySpeed: 0.043 },
         ]
     },
-    // === LEVEL 14: Full Keyboard — All letters, short path, hardest ===
     {
-        id: 14,
-        name: 'Full Keyboard',
+        id: 15, name: 'Fire Gauntlet', world: 'lava',
+        letters: ['A', 'S', 'D', 'F', 'J', 'K', 'L', 'Q', 'W', 'E', 'R', 'U', 'I', 'O', 'P'],
+        path: PATH_LAYOUTS.straightRush,
+        waves: [
+            { enemies: [
+                'Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'
+            ], spawnInterval: 2.0, enemySpeed: 0.04 },
+            { enemies: [
+                { letter: 'U', type: 'sprinter' }, { letter: 'I', type: 'sprinter' },
+                { letter: 'O', type: 'sprinter' }, { letter: 'P', type: 'sprinter' },
+                'J', 'K', 'L', 'A'
+            ], spawnInterval: 1.8, enemySpeed: 0.042 },
+            { enemies: [
+                { letter: 'Q', type: 'tank' }, { letter: 'W', type: 'swarm', count: 4 },
+                { letter: 'E', type: 'sprinter' }, 'R',
+                { letter: 'F', type: 'tank' }, { letter: 'J', type: 'swarm', count: 3 }
+            ], spawnInterval: 1.6, enemySpeed: 0.043 },
+            { enemies: [
+                { letter: 'A', type: 'swarm', count: 4 }, { letter: 'S', type: 'tank' },
+                { letter: 'D', type: 'sprinter' }, { letter: 'K', type: 'tank' },
+                { letter: 'L', type: 'sprinter' }, 'U', 'I', 'O', 'P'
+            ], spawnInterval: 1.5, enemySpeed: 0.044 },
+            { enemies: [
+                { letter: 'E', type: 'swarm', count: 4 }, { letter: 'R', type: 'tank' },
+                { letter: 'Q', type: 'sprinter' }, { letter: 'P', type: 'sprinter' },
+                { letter: 'W', type: 'tank' }, { letter: 'O', type: 'swarm', count: 3 },
+                'A', 'F', 'J', 'L'
+            ], spawnInterval: 1.4, enemySpeed: 0.045 },
+        ]
+    },
+    {
+        id: 16, name: 'Final Stand', world: 'lava',
         letters: ['A', 'S', 'D', 'F', 'J', 'K', 'L', 'Q', 'W', 'E', 'R', 'U', 'I', 'O', 'P'],
         path: PATH_LAYOUTS.shortDirect,
         waves: [

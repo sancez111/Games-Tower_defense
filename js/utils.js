@@ -61,6 +61,94 @@ const COLORS = {
     WAVE_COLOR: '#FFFFFF',
 };
 
+// World theme definitions — color palettes for each world
+const WORLD_THEMES = {
+    forest: {
+        name: 'Greenwood',
+        skyTop: '#4A90D9',
+        skyBottom: '#87CEEB',
+        grass: '#5B8C2A',
+        grassLight: '#7EC850',
+        dirt: '#8B6914',
+        dirtLight: '#B8860B',
+        pathDark: '#C4A35A',
+        pathLight: '#DCC07E',
+        castleWall: '#A9A9A9',
+        castleDark: '#7F7F7F',
+        castleRoof: '#8B4513',
+        castleDoor: '#5C3317',
+        caveFrame: '#555555',
+        caveDark: '#1A1A1A',
+        windowColor: '#87CEEB',
+    },
+    desert: {
+        name: 'Sandstone',
+        skyTop: '#D4943A',
+        skyBottom: '#F0C878',
+        grass: '#D4A65A',
+        grassLight: '#E0BE7A',
+        dirt: '#B8893A',
+        dirtLight: '#CCA050',
+        pathDark: '#C46A3A',
+        pathLight: '#D4845A',
+        castleWall: '#C4A060',
+        castleDark: '#9A7840',
+        castleRoof: '#AA6633',
+        castleDoor: '#6B4420',
+        caveFrame: '#8B6B3A',
+        caveDark: '#2A1A0A',
+        windowColor: '#F0C878',
+    },
+    snow: {
+        name: 'Frostpeak',
+        skyTop: '#B0C8E0',
+        skyBottom: '#D8E8F4',
+        grass: '#C8D8E8',
+        grassLight: '#E0E8F0',
+        dirt: '#A0B0C0',
+        dirtLight: '#B8C8D8',
+        pathDark: '#8BB0D0',
+        pathLight: '#A8C8E0',
+        castleWall: '#C0D0E0',
+        castleDark: '#90A0B0',
+        castleRoof: '#7090A8',
+        castleDoor: '#5A7088',
+        caveFrame: '#7090A8',
+        caveDark: '#1A2A3A',
+        windowColor: '#D8E8F4',
+    },
+    lava: {
+        name: 'Netherforge',
+        skyTop: '#1A0A0A',
+        skyBottom: '#4A1A0A',
+        grass: '#3A3A3A',
+        grassLight: '#4A4A4A',
+        dirt: '#2A2A2A',
+        dirtLight: '#3A3030',
+        pathDark: '#CC4400',
+        pathLight: '#DD6620',
+        castleWall: '#555555',
+        castleDark: '#333333',
+        castleRoof: '#442200',
+        castleDoor: '#220000',
+        caveFrame: '#331100',
+        caveDark: '#0A0000',
+        windowColor: '#FF4400',
+    },
+};
+
+// Helper to get world theme for a level index
+function getWorldTheme(levelIndex) {
+    if (levelIndex < LEVELS.length) {
+        const world = LEVELS[levelIndex].world || 'forest';
+        return WORLD_THEMES[world];
+    }
+    return WORLD_THEMES.forest;
+}
+
+// Current world theme (set when a level starts)
+let currentWorldTheme = WORLD_THEMES.forest;
+
 // Enemy type definitions
 const ENEMY_TYPES = {
     walker: {
@@ -130,6 +218,7 @@ const CONFIG = {
 const STATES = {
     MENU: 'MENU',
     LEVEL_SELECT: 'LEVEL_SELECT',
+    WORLD_MAP: 'WORLD_MAP',
     PLAYING: 'PLAYING',
     PAUSED: 'PAUSED',
     WAVE_INTRO: 'WAVE_INTRO',

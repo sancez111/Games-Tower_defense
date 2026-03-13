@@ -210,3 +210,18 @@ Each world uses its own sky gradient colors instead of the default blue.
 9. Grid caching works with per-world colors
 10. Snow world has falling snowflakes, Lava world has fire particles
 11. Performance stays at 60fps with world decorations
+
+## Status: COMPLETE
+
+### Implementation Summary
+- **WORLD_THEMES** constant in `utils.js` with full color palettes for forest, desert, snow, lava
+- **16 levels** across 4 worlds: Forest (1-4), Desert (5-8), Snow (9-12), Lava (13-16)
+- **2 new levels**: Level 4 "Forest Master" and Level 15 "Fire Gauntlet"
+- **Grid rendering** uses `currentWorldTheme` for tile colors (grass, dirt, path)
+- **Sky gradient** per-world via `cacheSkyGradient()`
+- **Cave/Castle** use world theme colors; snow gets icicles/snow on roof, lava gets dripping lava/glowing windows
+- **Per-world decorations**: trees/bushes/flowers (forest), cacti/rocks/dunes (desert), snow trees/ice crystals/snow piles (snow), lava pools/cracks/crystals (lava)
+- **Animated effects**: Snowflakes drift down in snow world; fire particles rise from lava pools in lava world; lava pools pulse with animated glow
+- **Mario-style world map**: Horizontal scrolling map with 4 themed zones, dotted path connecting level nodes, world labels, smooth scroll with arrow keys and touch/drag
+- **Power unlock levels** updated: Fireball(3), Shield(5), Slow(7), Blizzard(9), Dragon(12), Lava Moat(15)
+- **Old save compatibility**: First 14 levels map directly; levels 15-16 start fresh
