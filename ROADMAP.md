@@ -72,7 +72,7 @@
 
 ---
 
-## Phase 2c: Super Powers ← CURRENT
+## Phase 2c: Super Powers ← COMPLETE
 **Goal**: Add collectible power-ups that drop from destroyed enemies, providing exciting abilities
 
 **Deliverables**:
@@ -92,7 +92,7 @@
   - Later levels are designed harder to account for powers being available
 - **Visual**: Pickups are glowing colored blocks bouncing on the path. Each power type has a distinct color and simple icon.
 
-**Status**: Not started
+**Status**: Complete
 
 ---
 

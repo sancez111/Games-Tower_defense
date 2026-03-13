@@ -146,3 +146,15 @@ Note: Dragon unlocks at Level 15 which doesn't exist yet. It won't be available 
 9. Powers only drop for types the player has unlocked
 10. All existing features (scoring, combos, timer, etc.) continue working
 11. Smooth 60fps even during power animations
+
+## Status: COMPLETE
+
+### Implementation Notes
+- Created `js/powers.js` (905 lines) — complete power system module
+- All 6 powers implemented with distinct activation animations and effects
+- Pickup system: ~18% drop chance, letter collection from level pool, 5s lifetime with blink
+- Inventory: 3 slots, Alt/rotate cycles, Spacebar/USE activates, one use per wave
+- Touch: USE and ROTATE buttons rendered next to inventory slots
+- Enemy integration: speed multiplier (slow/freeze), shield check at castle, lava zone kills
+- Dragon code ready for Level 15 (unlock check uses highest level reached from save data)
+- All effects use blocky square particles — no curves

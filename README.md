@@ -36,6 +36,7 @@ A Minecraft-style tower defense learning game for young children (age 5+) to rec
 │   ├── enemies.js      — Letter enemy spawning & behavior
 │   ├── keyboard.js     — On-screen keyboard component & highlighting
 │   ├── progression.js  — Level system, difficulty scaling, scoring
+│   ├── powers.js       — Super powers: pickups, inventory, 6 power effects
 │   ├── modes/
 │   │   ├── letterMarch.js    — Mode 1: Letter March
 │   │   ├── keyboardDefense.js — Mode 2: Keyboard Defense
@@ -55,10 +56,15 @@ A Minecraft-style tower defense learning game for young children (age 5+) to rec
 - **Graphics** (later): Gemini AI generates Minecraft-style sprite assets
 
 ## Current Status
-**Phase 2b — Enemy Variety + Level Layouts** (Complete)
-- 4 enemy types: Walker (green), Sprinter (blue, fast), Tank (red, 2-hit), Swarm (purple, group kill)
-- 5 unique path layouts per level (long winding, medium S-shape, short direct, zigzag, straight rush)
-- 14 levels covering home row (F,J → A,S,D,F,J,K,L) through top row (Q,W,E,R,U,I,O,P)
-- Level select updated to 2-row grid
+**Phase 2c — Super Powers** (Complete)
+- 6 collectible powers: Fireball, Shield, Slow Clock, Blizzard, Lava Moat, Dragon
+- Power pickups drop from destroyed enemies (~18% chance, Level 3+)
+- Collect pickups by typing the letter shown — reinforces typing practice
+- Power inventory (3 slots) with Alt to cycle, Spacebar to activate
+- One power use per wave for balanced gameplay
+- Touch controls: USE and ROTATE buttons for tablet play
+- Powers unlock at level milestones (L3, L5, L7, L9, L12, L15)
+- All animations use blocky Minecraft-style particles and effects
+- 4 enemy types: Walker, Sprinter, Tank, Swarm across 14 levels
 - Level stopwatch timer with best time tracking
 - Scoring with combos, star ratings, and progressive difficulty
