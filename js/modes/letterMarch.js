@@ -14,6 +14,7 @@ const LetterMarch = {
         const levelDef = Progression.getLevelDef();
         Path.init(levelDef.path || null);
         Enemies.init();
+        Powers.init();
         Particles.clear();
         FloatingTexts.clear();
 
@@ -44,6 +45,8 @@ const LetterMarch = {
         Game.state = STATES.PLAYING;
         // Start/resume timer when active gameplay begins
         Progression.timerRunning = true;
+        // Reset per-wave power usage
+        Powers.onWaveStart();
     },
 
     update(dt) {
@@ -64,15 +67,20 @@ const LetterMarch = {
         }
 
         Enemies.update(dt, Game.time);
+        Powers.update(dt);
         Particles.update(dt);
         FloatingTexts.update(dt);
         Keyboard.update(dt);
 
         // Update keyboard highlights only when enemy list changes
-        if (Enemies.listChanged) {
+        if (Enemies.listChanged || Powers.pickup) {
             const activeLetters = Enemies.list
                 .filter(e => e.alive)
                 .map(e => e.letter);
+            // Also highlight the pickup letter
+            if (Powers.pickup) {
+                activeLetters.push(Powers.pickup.letter);
+            }
             Keyboard.highlightKeys(activeLetters);
             Enemies.listChanged = false;
         }
@@ -112,9 +120,25 @@ const LetterMarch = {
         }
     },
 
+    // Handle special keys (Spacebar = USE power, Alt = ROTATE power)
+    processSpecialKey(key) {
+        if (this.waveIntroActive) return;
+        if (key === 'SPACE') {
+            Powers.activatePower();
+        } else if (key === 'ALT') {
+            Powers.rotateSelection();
+        }
+    },
+
     // Process a letter input (keyboard or touch)
     processInput(letter, shifted) {
         if (this.waveIntroActive) return;
+
+        // Check pickups FIRST before enemies
+        if (Powers.tryCollectPickup(letter)) {
+            Keyboard.flashKey(letter, 'CORRECT');
+            return;
+        }
 
         const hitResult = Enemies.tryHitLetter(letter, shifted);
         if (hitResult) {
@@ -152,6 +176,9 @@ const LetterMarch = {
             } else if (Progression.combo > 7 && Progression.combo % 3 === 0) {
                 FloatingTexts.spawn(hitResult.x, hitResult.y - 60, 'AMAZING!', '#FFD700', 20);
             }
+
+            // Try to spawn a power pickup from the kill
+            Powers.trySpawnPickup(hitResult.x, hitResult.y);
         } else {
             Keyboard.flashKey(letter, 'WRONG');
             Progression.resetCombo();
@@ -169,9 +196,11 @@ const LetterMarch = {
         Grid.render(ctx, Game.time);
         Path.render(ctx);
         Enemies.render(ctx, Game.time);
+        Powers.render(ctx);
         Particles.render(ctx);
         FloatingTexts.render(ctx);
         Keyboard.render(ctx);
+        Powers.renderInventory(ctx);
 
         // HUD
         this.renderHUD(ctx);

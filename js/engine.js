@@ -45,6 +45,7 @@ const Game = {
         Path.init();
         Keyboard.init();
         Enemies.init();
+        Powers.init();
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -64,6 +65,14 @@ const Game = {
                 if (e.shiftKey) {
                     this.input.shiftedKeys[key] = true;
                 }
+            }
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                this.input._spacePressed = true;
+            }
+            if (e.key === 'Alt' || e.code === 'AltLeft' || e.code === 'AltRight') {
+                e.preventDefault();
+                this.input._altPressed = true;
             }
             if (e.key === 'Escape') {
                 if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
@@ -111,9 +120,20 @@ const Game = {
         });
     },
 
-    // Touch-to-keyboard: check if tap lands on a keyboard key
+    // Touch-to-keyboard: check if tap lands on a keyboard key or power button
     handleTouchKeyboard(x, y) {
         if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
+            // Check power buttons first
+            const powerAction = Powers.handleTouch(x, y);
+            if (powerAction === 'USE') {
+                this.input._spacePressed = true;
+                return;
+            }
+            if (powerAction === 'ROTATE') {
+                this.input._altPressed = true;
+                return;
+            }
+
             const result = Keyboard.getKeyAt(x, y);
             if (result === 'SHIFT') {
                 // Toggle Shift — stays active until a letter is tapped
@@ -217,6 +237,8 @@ const Game = {
 
         this.input.keysPressed = {};
         this.input.shiftedKeys = {};
+        this.input._spacePressed = false;
+        this.input._altPressed = false;
         this.input.mouseClicked = false;
 
         requestAnimationFrame((t) => this.loop(t));
@@ -286,6 +308,14 @@ const Game = {
     },
 
     updatePlaying(dt) {
+        // Process special keys for powers
+        if (this.input._spacePressed) {
+            LetterMarch.processSpecialKey('SPACE');
+        }
+        if (this.input._altPressed) {
+            LetterMarch.processSpecialKey('ALT');
+        }
+
         // Process keyboard input
         for (const key in this.input.keysPressed) {
             const shifted = !!this.input.shiftedKeys[key];

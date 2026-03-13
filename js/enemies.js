@@ -109,7 +109,9 @@ const Enemies = {
         for (let i = this.list.length - 1; i >= 0; i--) {
             const enemy = this.list[i];
 
-            enemy.pathProgress += enemy.speed * dt;
+            // Apply power speed effects (slow/freeze)
+            const speedMult = (typeof Powers !== 'undefined') ? Powers.getSpeedMultiplier() : 1.0;
+            enemy.pathProgress += enemy.speed * dt * speedMult;
 
             const pos = Path.getPositionAt(enemy.pathProgress);
             enemy.x = pos.x + enemy.swarmOffsetX;
@@ -149,6 +151,16 @@ const Enemies = {
 
             // Reached end of path
             if (enemy.pathProgress >= 1 && enemy.alive) {
+                // Check shield first
+                if (typeof Powers !== 'undefined' && Powers.checkShield()) {
+                    // Shield absorbed the enemy — destroy it
+                    enemy.alive = false;
+                    Particles.spawn(enemy.x, enemy.y, '#00CCCC', 10);
+                    this.list.splice(i, 1);
+                    this.listChanged = true;
+                    continue;
+                }
+
                 enemy.alive = false;
                 this.list.splice(i, 1);
                 this.listChanged = true;
