@@ -136,8 +136,8 @@ const Powers = {
         const unlocked = this.getUnlockedPowers();
         if (unlocked.length === 0) return false;
 
-        // 15-20% chance
-        if (Math.random() > 0.18) return false;
+        // 35% chance — generous so powers feel fun for kids
+        if (Math.random() > 0.35) return false;
 
         // Pick random power type from unlocked
         const powerType = unlocked[Math.floor(Math.random() * unlocked.length)];
@@ -152,10 +152,15 @@ const Powers = {
             y: y,
             letter: letter,
             powerType: powerType,
-            timer: 5.0,
-            maxTimer: 5.0,
+            timer: 8.0,
+            maxTimer: 8.0,
             bobOffset: Math.random() * Math.PI * 2,
         };
+
+        // Notify player
+        const def = POWER_TYPES[powerType];
+        FloatingTexts.spawn(x, y - 40, 'POWER UP!', def.color, 16);
+
         return true;
     },
 
@@ -182,7 +187,7 @@ const Powers = {
         FloatingTexts.spawn(this.pickup.x, this.pickup.y - 30, def.name + '!', def.color, 14);
 
         this.pickup = null;
-        this.pickupCooldown = 1.0;
+        this.pickupCooldown = 0.3;
         return true;
     },
 
@@ -573,24 +578,27 @@ const Powers = {
         const p = this.pickup;
         const def = POWER_TYPES[p.powerType];
         const ts = Grid.tileSize;
-        const size = ts * 0.5;
+        const size = ts * 0.7; // larger so it's easily spotted
 
-        // Blink during last 1.5s
-        if (p.timer < 1.5) {
+        // Blink during last 2s
+        if (p.timer < 2.0) {
             const blink = Math.sin(time * 12) > 0;
             if (!blink) return;
         }
 
         // Bob animation
-        const bob = Math.sin(time * 4 + p.bobOffset) * 5;
+        const bob = Math.sin(time * 4 + p.bobOffset) * 6;
         const px = p.x - size / 2;
         const py = p.y - size + bob;
 
-        // Glow ring (expanding/contracting)
-        const glowSize = size * (1.2 + Math.sin(time * 5) * 0.2);
-        ctx.globalAlpha = 0.3;
+        // Large pulsing glow ring (very visible)
+        const glowSize = size * (1.6 + Math.sin(time * 5) * 0.3);
+        ctx.globalAlpha = 0.25;
         ctx.fillStyle = def.color;
         ctx.fillRect(p.x - glowSize / 2, p.y - glowSize / 2 + bob - size / 2, glowSize, glowSize);
+        ctx.globalAlpha = 0.15;
+        const glowSize2 = glowSize * 1.3;
+        ctx.fillRect(p.x - glowSize2 / 2, p.y - glowSize2 / 2 + bob - size / 2, glowSize2, glowSize2);
         ctx.globalAlpha = 1;
 
         // Colored block
@@ -599,22 +607,23 @@ const Powers = {
 
         // Dark border
         ctx.fillStyle = def.darkColor;
-        ctx.fillRect(px, py, size, 2);
-        ctx.fillRect(px, py, 2, size);
-        ctx.fillRect(px + size - 2, py, 2, size);
-        ctx.fillRect(px, py + size - 2, size, 2);
+        ctx.fillRect(px, py, size, 3);
+        ctx.fillRect(px, py, 3, size);
+        ctx.fillRect(px + size - 3, py, 3, size);
+        ctx.fillRect(px, py + size - 3, size, 3);
 
         // Highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(px + 2, py + 2, size - 4, size * 0.3);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(px + 3, py + 3, size - 6, size * 0.3);
 
-        // Letter on pickup
-        const letterSize = Math.max(8, size * 0.6);
-        drawText(ctx, p.letter, p.x, py + size * 0.5, letterSize, '#FFFFFF', 'center', 1);
+        // Letter on pickup (big and clear)
+        const letterSize = Math.max(10, size * 0.55);
+        drawText(ctx, p.letter, p.x, py + size * 0.5, letterSize, '#FFFFFF', 'center', 2);
 
-        // Power icon label above
-        const iconSize = Math.max(6, size * 0.3);
-        drawText(ctx, def.name, p.x, py - iconSize * 0.5, iconSize, def.color, 'center', 1);
+        // Power name above (clear label)
+        const iconSize = Math.max(7, size * 0.28);
+        drawText(ctx, 'Type ' + p.letter + '!', p.x, py - iconSize * 1.2, iconSize, def.color, 'center', 1);
+        drawText(ctx, def.name, p.x, py - iconSize * 2.8, iconSize, '#FFFFFF', 'center', 1);
     },
 
     _renderFireball(ctx, time) {

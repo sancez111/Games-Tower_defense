@@ -87,18 +87,31 @@ const Enemies = {
             const entry = this.spawnQueue.shift();
 
             if (entry.type === 'swarm') {
-                // Spawn a cluster — each unit gets a different letter from the level's pool
+                // Spawn a cluster — each unit gets a UNIQUE letter from the level's pool
                 const group = _nextSwarmGroup++;
                 const count = entry.count || 3;
-                const levelLetters = Progression.getLevelDef().letters;
+                const levelLetters = Progression.getLevelDef().letters.slice(); // copy
+                // Shuffle the pool and pick unique letters
+                const shuffled = [];
+                const pool = levelLetters.slice();
+                while (shuffled.length < count && pool.length > 0) {
+                    const idx = Math.floor(Math.random() * pool.length);
+                    shuffled.push(pool[idx]);
+                    pool.splice(idx, 1);
+                }
+                // If we need more than the pool has, fill remaining with random from full pool
+                while (shuffled.length < count) {
+                    shuffled.push(levelLetters[Math.floor(Math.random() * levelLetters.length)]);
+                }
+                // Make sure the defined letter is included (replace first)
+                shuffled[0] = entry.letter;
+
                 for (let s = 0; s < count; s++) {
                     const offset = {
                         x: (Math.random() - 0.5) * 10,
                         y: (Math.random() - 0.5) * 10,
                     };
-                    // First unit uses the defined letter, rest get random from level pool
-                    const swarmLetter = s === 0 ? entry.letter : levelLetters[Math.floor(Math.random() * levelLetters.length)];
-                    this.spawn(swarmLetter, 'swarm', group, offset);
+                    this.spawn(shuffled[s], 'swarm', group, offset);
                 }
             } else {
                 this.spawn(entry.letter, entry.type);
