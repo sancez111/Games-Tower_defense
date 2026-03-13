@@ -136,8 +136,8 @@ const Powers = {
         const unlocked = this.getUnlockedPowers();
         if (unlocked.length === 0) return false;
 
-        // 35% chance — generous so powers feel fun for kids
-        if (Math.random() > 0.35) return false;
+        // 18% drop chance
+        if (Math.random() > 0.18) return false;
 
         // Pick random power type from unlocked
         const powerType = unlocked[Math.floor(Math.random() * unlocked.length)];
@@ -199,7 +199,6 @@ const Powers = {
 
     // Activate the selected power
     activatePower() {
-        if (this.usedThisWave) return false;
         if (this.inventory.length === 0) return false;
         if (this.selectedIndex >= this.inventory.length) return false;
 
@@ -208,7 +207,6 @@ const Powers = {
         if (this.selectedIndex >= this.inventory.length) {
             this.selectedIndex = Math.max(0, this.inventory.length - 1);
         }
-        this.usedThisWave = true;
 
         this._activate(powerType);
         return true;
@@ -800,17 +798,15 @@ const Powers = {
 
             const hasPower = i < this.inventory.length;
             const isSelected = i === this.selectedIndex && hasPower;
-            const grayed = this.usedThisWave;
 
             // Slot background
             if (hasPower) {
                 const def = POWER_TYPES[this.inventory[i]];
-                ctx.fillStyle = grayed ? '#555555' : def.color;
-                ctx.globalAlpha = grayed ? 0.5 : 1;
+                ctx.fillStyle = def.color;
                 ctx.fillRect(sx, sy, slotSize, slotSize);
 
                 // Highlight/border
-                if (isSelected && !grayed) {
+                if (isSelected) {
                     ctx.strokeStyle = '#FFFFFF';
                     ctx.lineWidth = 3;
                     ctx.strokeRect(sx - 2, sy - 2, slotSize + 4, slotSize + 4);
@@ -818,10 +814,8 @@ const Powers = {
 
                 // Power label
                 const labelSize = Math.max(6, slotSize * 0.25);
-                ctx.globalAlpha = grayed ? 0.5 : 1;
                 drawText(ctx, def.name, sx + slotSize / 2, sy + slotSize / 2,
                     labelSize, '#FFFFFF', 'center', 1);
-                ctx.globalAlpha = 1;
             } else {
                 // Empty slot
                 ctx.strokeStyle = '#555555';
@@ -837,7 +831,7 @@ const Powers = {
         const useY = startY + (slotSize - btnH) / 2;
         this.useButtonRect = { x: useX, y: useY, w: btnW, h: btnH };
 
-        const canUse = this.inventory.length > 0 && !this.usedThisWave;
+        const canUse = this.inventory.length > 0;
         const radius = Math.max(2, btnW * 0.08);
 
         // USE button background

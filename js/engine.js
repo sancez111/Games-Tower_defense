@@ -70,9 +70,9 @@ const Game = {
                 e.preventDefault();
                 this.input._spacePressed = true;
             }
-            if (e.key === 'Alt' || e.code === 'AltLeft' || e.code === 'AltRight') {
+            if (e.key === 'Tab') {
                 e.preventDefault();
-                this.input._altPressed = true;
+                this.input._rotatePressed = true;
             }
             if (e.key === 'Escape') {
                 if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
@@ -130,7 +130,7 @@ const Game = {
                 return;
             }
             if (powerAction === 'ROTATE') {
-                this.input._altPressed = true;
+                this.input._rotatePressed = true;
                 return;
             }
 
@@ -238,7 +238,7 @@ const Game = {
         this.input.keysPressed = {};
         this.input.shiftedKeys = {};
         this.input._spacePressed = false;
-        this.input._altPressed = false;
+        this.input._rotatePressed = false;
         this.input.mouseClicked = false;
 
         requestAnimationFrame((t) => this.loop(t));
@@ -312,7 +312,7 @@ const Game = {
         if (this.input._spacePressed) {
             LetterMarch.processSpecialKey('SPACE');
         }
-        if (this.input._altPressed) {
+        if (this.input._rotatePressed) {
             LetterMarch.processSpecialKey('ALT');
         }
 
