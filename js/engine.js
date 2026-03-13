@@ -19,7 +19,8 @@ const Game = {
     input: {
         keysPressed: {},
         keysDown: {},
-        shiftedKeys: {},    // keys pressed with Shift held this frame
+        shiftedKeys: {},
+        shiftDown: false,      // physical Shift key held
         mouseX: 0,
         mouseY: 0,
         mouseClicked: false,
@@ -57,12 +58,17 @@ const Game = {
     setupInput() {
         // Keyboard
         document.addEventListener('keydown', (e) => {
+            // Track Shift as its own held state (more reliable than e.shiftKey)
+            if (e.key === 'Shift') {
+                this.input.shiftDown = true;
+            }
+
             const key = e.key.toUpperCase();
             if (key.length === 1 && key >= 'A' && key <= 'Z') {
                 this.input.keysPressed[key] = true;
                 this.input.keysDown[key] = true;
                 // Track if Shift was held for this keypress (used by tank mechanic)
-                if (e.shiftKey) {
+                if (this.input.shiftDown || e.shiftKey) {
                     this.input.shiftedKeys[key] = true;
                 }
             }
@@ -70,7 +76,7 @@ const Game = {
                 e.preventDefault();
                 this.input._spacePressed = true;
             }
-            if (e.key === 'Tab') {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
                 this.input._rotatePressed = true;
             }
@@ -84,6 +90,9 @@ const Game = {
         });
 
         document.addEventListener('keyup', (e) => {
+            if (e.key === 'Shift') {
+                this.input.shiftDown = false;
+            }
             const key = e.key.toUpperCase();
             delete this.input.keysDown[key];
         });
@@ -117,6 +126,12 @@ const Game = {
         this.canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
             this.input.mouseDown = false;
+        });
+
+        // Reset Shift if window loses focus (prevents stuck Shift state)
+        window.addEventListener('blur', () => {
+            this.input.shiftDown = false;
+            this.input.keysDown = {};
         });
     },
 
