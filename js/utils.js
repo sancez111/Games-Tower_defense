@@ -74,7 +74,7 @@ const ENEMY_TYPES = {
         color: '#4488DD',
         darkColor: '#3366AA',
         sizeMultiplier: 0.6,
-        speedMultiplier: 2.5,
+        speedMultiplier: 3.0,
         maxHits: 1,
     },
     tank: {

@@ -87,15 +87,18 @@ const Enemies = {
             const entry = this.spawnQueue.shift();
 
             if (entry.type === 'swarm') {
-                // Spawn a cluster with shared swarm group
+                // Spawn a cluster — each unit gets a different letter from the level's pool
                 const group = _nextSwarmGroup++;
                 const count = entry.count || 3;
+                const levelLetters = Progression.getLevelDef().letters;
                 for (let s = 0; s < count; s++) {
                     const offset = {
                         x: (Math.random() - 0.5) * 10,
                         y: (Math.random() - 0.5) * 10,
                     };
-                    this.spawn(entry.letter, 'swarm', group, offset);
+                    // First unit uses the defined letter, rest get random from level pool
+                    const swarmLetter = s === 0 ? entry.letter : levelLetters[Math.floor(Math.random() * levelLetters.length)];
+                    this.spawn(swarmLetter, 'swarm', group, offset);
                 }
             } else {
                 this.spawn(entry.letter, entry.type);
