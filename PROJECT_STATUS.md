@@ -15,24 +15,26 @@ A Minecraft-style tower defense web game teaching a 5-year-old to recognize lett
 - **User**: makes big decisions only, limited technical knowledge — keep language simple
 - **Always sync** on build status, progress, roadmap, and planned features at start of each chat
 
-## Codebase (~7,100+ lines across 11 JS files)
+## Current Version: v0.3.0
+
+## Codebase (~7,300+ lines across 11 JS files)
 
 ```
 /
 ├── index.html              — Entry point, loads all JS + Google Font
 ├── css/style.css           — Fullscreen canvas, pixel rendering
 ├── js/
-│   ├── utils.js (533)      — Colors, config, WORLD_THEMES, ENEMY_TYPES, PATH_LAYOUTS, helpers, ScreenShake, Particles, FloatingTexts, drawHeart, drawStar, drawButton
+│   ├── utils.js (535)      — GAME_VERSION, Colors, config, WORLD_THEMES, ENEMY_TYPES, PATH_LAYOUTS, helpers, ScreenShake, Particles, FloatingTexts, drawHeart, drawStar, drawButton
 │   ├── grid.js (159)       — 20x12 tile grid with off-screen cache, uses currentWorldTheme for colors
 │   ├── path.js (201)       — Accepts per-level waypoints, renders themed cave + castle
 │   ├── enemies.js (380)    — 4 enemy types (walker/sprinter/tank/swarm), spawn, hit detection, rendering
 │   ├── keyboard.js (232)   — On-screen QWERTY keyboard + SHIFT key, touch support, highlight states
 │   ├── powers.js (908)     — 6 super powers, pickup drops, inventory, activation effects, animations
 │   ├── progression.js (508) — 16 level definitions, 4 worlds, scoring, hearts, combos, timer, localStorage
-│   ├── engine.js (~1550)   — Game loop, state machine, input handling, menu, world map, win/lose/pause screens, KD integration
+│   ├── engine.js (~1620)   — Game loop, state machine, input handling, menu (version display, reset button), world map, win/lose/pause screens, KD integration
 │   └── modes/
 │       ├── letterMarch.js (570) — Full Letter March mode: waves, HUD, decorations, world effects
-│       ├── keyboardDefense.js (~2170) — Full Keyboard Defense mode: giant keyboard, falling enemies, finger guide, KD world map, KD progression
+│       ├── keyboardDefense.js (2173) — Full Keyboard Defense mode: giant keyboard, falling enemies, finger guide, KD world map, KD progression
 │       └── towerStrike.js (10)    — Placeholder
 ├── assets/ (sprites/, sounds/, fonts/) — All empty, using code-drawn graphics
 ├── ROADMAP.md, PHASE1.md, PHASE2.md, PHASE2B.md, PHASE2C.md, PHASE2D.md, PHASE3.md
@@ -99,6 +101,13 @@ Second game mode. The keyboard IS the battlefield. Enemy blocks spawn at top and
 - Star ratings, best times, combo system, all independent from Letter March
 - Unlocks after beating Letter March Level 1
 
+### v0.3.0: Version Display + Reset Button ✅
+- Version number (v0.3.0) shown in bottom-left of main menu, barely visible (for reference)
+- Reset Progress button in bottom-right of main menu, very subtle/unobtrusive
+- Two-click safety: first click shows red "Tap to confirm!" state (3-second timeout), second click resets
+- Clears both `letterDefenders_progress` and `letterDefenders_kd_progress` from localStorage
+- "Progress Reset!" floating text feedback on successful reset
+
 ## Current Controls
 - **Letter keys**: Type to destroy matching enemies
 - **Shift + letter**: Destroy damaged tanks (second hit)
@@ -120,6 +129,7 @@ Second game mode. The keyboard IS the battlefield. Enemy blocks spawn at top and
 - Window blur resets all held keys
 - Powers check pickups BEFORE enemies in processInput
 - localStorage saves: `{ level_1: { stars: 3, bestTime: 83.45 } }` — backwards compatible with old `{ level_1: 3 }` format
+- KD save key: `letterDefenders_kd_progress`
 - KD mode uses `Game.currentMode` ('lm' or 'kd') to route input/rendering/state transitions
 - KD has its own enemy list (`fallingEnemies`), keyboard layout (`keyRects`), and progression system (`KDProgression`)
 - KD save keys use `kd_level_` prefix, completely separate from Letter March saves
