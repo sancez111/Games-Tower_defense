@@ -6,6 +6,7 @@ const Game = {
     canvas: null,
     ctx: null,
     state: STATES.MENU,
+    currentMode: 'lm',  // 'lm' = Letter March, 'kd' = Keyboard Defense
     lastTime: 0,
     time: 0,
     width: 0,
@@ -161,7 +162,21 @@ const Game = {
     // Touch-to-keyboard: check if tap lands on a keyboard key or power button
     handleTouchKeyboard(x, y) {
         if (this.state === STATES.PLAYING || this.state === STATES.WAVE_INTRO) {
-            // Check power buttons first
+            if (this.currentMode === 'kd') {
+                // KD mode touch handling
+                const result = KeyboardDefense.handleTouch(x, y);
+                if (result === true) {
+                    // handled internally (power button, guide toggle)
+                    return;
+                }
+                if (typeof result === 'string') {
+                    // Key tap
+                    this.input.keysPressed[result] = true;
+                }
+                return;
+            }
+
+            // LM mode touch handling
             const powerAction = Powers.handleTouch(x, y);
             if (powerAction === 'USE') {
                 this.input._spacePressed = true;
@@ -174,13 +189,12 @@ const Game = {
 
             const result = Keyboard.getKeyAt(x, y);
             if (result === 'SHIFT') {
-                // Toggle Shift — stays active until a letter is tapped
                 Keyboard.shiftActive = !Keyboard.shiftActive;
             } else if (result) {
                 this.input.keysPressed[result] = true;
                 if (Keyboard.shiftActive) {
                     this.input.shiftedKeys[result] = true;
-                    Keyboard.shiftActive = false; // auto-release after one use
+                    Keyboard.shiftActive = false;
                 }
             }
         }
@@ -211,6 +225,7 @@ const Game = {
         const gameAreaHeight = this.height * CONFIG.GAME_AREA_RATIO;
         Grid.resize(this.width, gameAreaHeight);
         Keyboard.resize(this.width, this.height);
+        KeyboardDefense.resizeKeyboard();
         this.buildMenuButtons();
         this.buildLevelButtons();
         this.cacheSkyGradient();
@@ -234,10 +249,12 @@ const Game = {
         const startY = this.height * 0.5;
         const gap = btnH * 1.4;
 
+        // KD unlocks after beating Letter March level 1 (stars >= 1)
+        const kdUnlocked = Progression.getLevelStars(0) >= 1;
         this.menuButtons = [
-            { label: 'Letter March', x: cx - btnW / 2, y: startY, w: btnW, h: btnH, active: true, icon: '\u2694' },
-            { label: 'Keyboard Defense', x: cx - btnW / 2, y: startY + gap, w: btnW, h: btnH, active: false, icon: '\u2328' },
-            { label: 'Tower Strike', x: cx - btnW / 2, y: startY + gap * 2, w: btnW, h: btnH, active: false, icon: '\uD83C\uDFF0' },
+            { label: 'Letter March', x: cx - btnW / 2, y: startY, w: btnW, h: btnH, active: true, icon: '\u2694', mode: 'lm' },
+            { label: 'Keyboard Defense', x: cx - btnW / 2, y: startY + gap, w: btnW, h: btnH, active: kdUnlocked, icon: '\u2328', mode: 'kd' },
+            { label: 'Tower Strike', x: cx - btnW / 2, y: startY + gap * 2, w: btnW, h: btnH, active: false, icon: '\uD83C\uDFF0', mode: 'ts' },
         ];
     },
 
@@ -295,7 +312,11 @@ const Game = {
                 break;
             case STATES.LEVEL_SELECT:
             case STATES.WORLD_MAP:
-                this.updateWorldMap(dt);
+                if (this.currentMode === 'kd') {
+                    KeyboardDefense.updateWorldMap(dt);
+                } else {
+                    this.updateWorldMap(dt);
+                }
                 break;
             case STATES.PLAYING:
             case STATES.WAVE_INTRO:
@@ -314,12 +335,22 @@ const Game = {
     },
 
     updateMenu() {
+        // Rebuild menu buttons each frame to check KD unlock status
+        this.buildMenuButtons();
+
         if (this.input.mouseClicked) {
             for (let i = 0; i < this.menuButtons.length; i++) {
                 const btn = this.menuButtons[i];
                 if (btn.active && pointInRect(this.input.mouseX, this.input.mouseY, btn.x, btn.y, btn.w, btn.h)) {
-                    this.state = STATES.WORLD_MAP;
-                    this.initWorldMap();
+                    if (btn.mode === 'kd') {
+                        this.currentMode = 'kd';
+                        this.state = STATES.WORLD_MAP;
+                        KeyboardDefense.initWorldMap();
+                    } else {
+                        this.currentMode = 'lm';
+                        this.state = STATES.WORLD_MAP;
+                        this.initWorldMap();
+                    }
                     break;
                 }
             }
@@ -328,25 +359,41 @@ const Game = {
 
     startLevel(levelIndex) {
         this.state = STATES.WAVE_INTRO;
-        LetterMarch.init(levelIndex);
+        if (this.currentMode === 'kd') {
+            KeyboardDefense.init(levelIndex);
+        } else {
+            LetterMarch.init(levelIndex);
+        }
     },
 
     updatePlaying(dt) {
-        // Process special keys for powers
-        if (this.input._spacePressed) {
-            LetterMarch.processSpecialKey('SPACE');
+        if (this.currentMode === 'kd') {
+            // KD mode input
+            if (this.input._spacePressed) {
+                KeyboardDefense.processSpecialKey('SPACE');
+            }
+            if (this.input._rotatePressed) {
+                KeyboardDefense.processSpecialKey('ALT');
+            }
+            for (const key in this.input.keysPressed) {
+                const shifted = !!this.input.shiftedKeys[key];
+                KeyboardDefense.processInput(key, shifted);
+            }
+            KeyboardDefense.update(dt);
+        } else {
+            // LM mode input
+            if (this.input._spacePressed) {
+                LetterMarch.processSpecialKey('SPACE');
+            }
+            if (this.input._rotatePressed) {
+                LetterMarch.processSpecialKey('ALT');
+            }
+            for (const key in this.input.keysPressed) {
+                const shifted = !!this.input.shiftedKeys[key];
+                LetterMarch.processInput(key, shifted);
+            }
+            LetterMarch.update(dt);
         }
-        if (this.input._rotatePressed) {
-            LetterMarch.processSpecialKey('ALT');
-        }
-
-        // Process keyboard input
-        for (const key in this.input.keysPressed) {
-            const shifted = !!this.input.shiftedKeys[key];
-            LetterMarch.processInput(key, shifted);
-        }
-
-        LetterMarch.update(dt);
     },
 
     updatePaused() {
@@ -357,10 +404,16 @@ const Game = {
                 this.state = STATES.PLAYING;
                 return;
             }
-            // Menu button
+            // World Map button (returns to correct world map)
             if (this._pauseMenuBtn && pointInRect(this.input.mouseX, this.input.mouseY,
                 this._pauseMenuBtn.x, this._pauseMenuBtn.y, this._pauseMenuBtn.w, this._pauseMenuBtn.h)) {
-                this.state = STATES.MENU;
+                if (this.currentMode === 'kd') {
+                    this.state = STATES.WORLD_MAP;
+                    KeyboardDefense.initWorldMap();
+                } else {
+                    this.state = STATES.WORLD_MAP;
+                    this.initWorldMap();
+                }
                 return;
             }
         }
@@ -370,12 +423,21 @@ const Game = {
         if (this.input.mouseClicked) {
             if (this._tryAgainBtn && pointInRect(this.input.mouseX, this.input.mouseY,
                 this._tryAgainBtn.x, this._tryAgainBtn.y, this._tryAgainBtn.w, this._tryAgainBtn.h)) {
-                this.startLevel(Progression.currentLevel);
+                if (this.currentMode === 'kd') {
+                    this.startLevel(KeyboardDefense.currentLevel);
+                } else {
+                    this.startLevel(Progression.currentLevel);
+                }
                 return;
             }
             if (this._goMenuBtn && pointInRect(this.input.mouseX, this.input.mouseY,
                 this._goMenuBtn.x, this._goMenuBtn.y, this._goMenuBtn.w, this._goMenuBtn.h)) {
-                this.state = STATES.MENU;
+                if (this.currentMode === 'kd') {
+                    this.state = STATES.WORLD_MAP;
+                    KeyboardDefense.initWorldMap();
+                } else {
+                    this.state = STATES.MENU;
+                }
                 return;
             }
         }
@@ -385,18 +447,33 @@ const Game = {
         if (this.input.mouseClicked) {
             if (this._nextLevelBtn && pointInRect(this.input.mouseX, this.input.mouseY,
                 this._nextLevelBtn.x, this._nextLevelBtn.y, this._nextLevelBtn.w, this._nextLevelBtn.h)) {
-                const next = Progression.currentLevel + 1;
-                if (next < LEVELS.length) {
-                    this.startLevel(next);
+                if (this.currentMode === 'kd') {
+                    const next = KeyboardDefense.currentLevel + 1;
+                    if (next < KD_LEVELS.length) {
+                        this.startLevel(next);
+                    } else {
+                        this.state = STATES.WORLD_MAP;
+                        KeyboardDefense.initWorldMap();
+                    }
                 } else {
-                    this.state = STATES.WORLD_MAP;
-                    this.initWorldMap();
+                    const next = Progression.currentLevel + 1;
+                    if (next < LEVELS.length) {
+                        this.startLevel(next);
+                    } else {
+                        this.state = STATES.WORLD_MAP;
+                        this.initWorldMap();
+                    }
                 }
                 return;
             }
             if (this._winMenuBtn && pointInRect(this.input.mouseX, this.input.mouseY,
                 this._winMenuBtn.x, this._winMenuBtn.y, this._winMenuBtn.w, this._winMenuBtn.h)) {
-                this.state = STATES.MENU;
+                if (this.currentMode === 'kd') {
+                    this.state = STATES.WORLD_MAP;
+                    KeyboardDefense.initWorldMap();
+                } else {
+                    this.state = STATES.MENU;
+                }
                 return;
             }
         }
@@ -415,22 +492,42 @@ const Game = {
                 break;
             case STATES.LEVEL_SELECT:
             case STATES.WORLD_MAP:
-                this.renderWorldMap(ctx);
+                if (this.currentMode === 'kd') {
+                    KeyboardDefense.renderWorldMap(ctx);
+                } else {
+                    this.renderWorldMap(ctx);
+                }
                 break;
             case STATES.PLAYING:
             case STATES.WAVE_INTRO:
-                LetterMarch.render(ctx);
+                if (this.currentMode === 'kd') {
+                    KeyboardDefense.render(ctx);
+                } else {
+                    LetterMarch.render(ctx);
+                }
                 break;
             case STATES.PAUSED:
-                LetterMarch.render(ctx);
+                if (this.currentMode === 'kd') {
+                    KeyboardDefense.render(ctx);
+                } else {
+                    LetterMarch.render(ctx);
+                }
                 this.renderPauseOverlay(ctx);
                 break;
             case STATES.GAME_OVER:
-                LetterMarch.render(ctx);
+                if (this.currentMode === 'kd') {
+                    KeyboardDefense.render(ctx);
+                } else {
+                    LetterMarch.render(ctx);
+                }
                 this.renderGameOverOverlay(ctx);
                 break;
             case STATES.WIN:
-                LetterMarch.render(ctx);
+                if (this.currentMode === 'kd') {
+                    KeyboardDefense.render(ctx);
+                } else {
+                    LetterMarch.render(ctx);
+                }
                 this.renderWinOverlay(ctx);
                 break;
         }
@@ -1300,7 +1397,8 @@ const Game = {
 
         this._resumeBtn = drawButton(ctx, 'Resume', this.width / 2 - btnW / 2, this.height * 0.5, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
-        this._pauseMenuBtn = drawButton(ctx, 'Back to Menu', this.width / 2 - btnW / 2, this.height * 0.5 + gap, btnW, btnH,
+        const pauseBackLabel = this.currentMode === 'kd' ? 'World Map' : 'Back to Menu';
+        this._pauseMenuBtn = drawButton(ctx, pauseBackLabel, this.width / 2 - btnW / 2, this.height * 0.5 + gap, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
     },
 
@@ -1313,12 +1411,14 @@ const Game = {
         const titleSize = Math.max(22, this.width * 0.04);
         drawText(ctx, 'GAME OVER', this.width / 2, this.height * 0.25, titleSize, '#FF4444', 'center', 3);
 
+        const goScore = this.currentMode === 'kd' ? KeyboardDefense.score : Progression.score;
+        const goTime = this.currentMode === 'kd' ? KeyboardDefense.levelTime : Progression.levelTime;
         const scoreSize = Math.max(14, this.width * 0.02);
-        drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.35, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
+        drawText(ctx, 'Score: ' + goScore, this.width / 2, this.height * 0.35, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
 
         // Survived time
         const timeSize = Math.max(9, this.width * 0.013);
-        drawText(ctx, 'Survived: ' + formatTimeShort(Progression.levelTime),
+        drawText(ctx, 'Survived: ' + formatTimeShort(goTime),
             this.width / 2, this.height * 0.42, timeSize, COLORS.SUBTITLE_COLOR, 'center', 1);
 
         // Encouraging message
@@ -1329,7 +1429,7 @@ const Game = {
             'Good effort! You can do it!',
         ];
         const msgSize = Math.max(10, this.width * 0.015);
-        const stableMsg = messages[Progression.score % messages.length];
+        const stableMsg = messages[goScore % messages.length];
         drawText(ctx, stableMsg, this.width / 2, this.height * 0.48, msgSize, COLORS.SUBTITLE_COLOR, 'center', 2);
 
         const btnW = Math.min(200, this.width * 0.25);
@@ -1338,7 +1438,8 @@ const Game = {
 
         this._tryAgainBtn = drawButton(ctx, 'Try Again', this.width / 2 - btnW / 2, this.height * 0.57, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
-        this._goMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.57 + gap, btnW, btnH,
+        const goBackLabel = this.currentMode === 'kd' ? 'World Map' : 'Menu';
+        this._goMenuBtn = drawButton(ctx, goBackLabel, this.width / 2 - btnW / 2, this.height * 0.57 + gap, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
     },
 
@@ -1351,42 +1452,48 @@ const Game = {
         const titleSize = Math.max(22, this.width * 0.04);
         drawText(ctx, 'LEVEL COMPLETE!', this.width / 2, this.height * 0.15, titleSize, COLORS.TITLE_COLOR, 'center', 3);
 
+        // Get mode-specific data
+        const isKD = this.currentMode === 'kd';
+        const modeScore = isKD ? KeyboardDefense.score : Progression.score;
+        const modeStars = isKD ? KeyboardDefense.getStars() : Progression.getStars();
+        const modeTime = isKD ? KeyboardDefense._completionTime : LetterMarch._completionTime;
+        const modeNewBest = isKD ? KeyboardDefense._isNewBest : LetterMarch._isNewBest;
+        const modeCurLevel = isKD ? KeyboardDefense.currentLevel : Progression.currentLevel;
+        const modeLevels = isKD ? KD_LEVELS : LEVELS;
+        const modeBestTime = isKD ? KDProgression.getLevelBestTime(modeCurLevel) : Progression.getLevelBestTime(modeCurLevel);
+
         const scoreSize = Math.max(14, this.width * 0.02);
-        drawText(ctx, 'Score: ' + Progression.score, this.width / 2, this.height * 0.24, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
+        drawText(ctx, 'Score: ' + modeScore, this.width / 2, this.height * 0.24, scoreSize, COLORS.SCORE_COLOR, 'center', 2);
 
         // Stars
-        const stars = Progression.getStars();
         const starSize = Math.max(20, this.width * 0.035);
         const starGap = starSize * 2.5;
         const starsStartX = this.width / 2 - starGap;
         for (let i = 0; i < 3; i++) {
-            drawStar(ctx, starsStartX + i * starGap, this.height * 0.32, starSize, i < stars);
+            drawStar(ctx, starsStartX + i * starGap, this.height * 0.32, starSize, i < modeStars);
         }
 
         // Time display
         const timeSize = Math.max(11, this.width * 0.016);
-        const timeStr = 'Time: ' + formatTimeShort(LetterMarch._completionTime);
+        const timeStr = 'Time: ' + formatTimeShort(modeTime);
         drawText(ctx, timeStr, this.width / 2, this.height * 0.41, timeSize, COLORS.WHITE, 'center', 2);
 
-        if (LetterMarch._isNewBest) {
+        if (modeNewBest) {
             const bestSize = Math.max(12, this.width * 0.018);
-            // Pulse animation for NEW BEST
             const pulse = 1 + Math.sin(this.time * 6) * 0.08;
             drawText(ctx, 'NEW BEST!', this.width / 2, this.height * 0.41 + timeSize * 1.6,
                 bestSize * pulse, '#FFD700', 'center', 2);
         } else {
-            const prevBest = Progression.getLevelBestTime(Progression.currentLevel);
-            if (prevBest != null) {
+            if (modeBestTime != null) {
                 const refSize = Math.max(9, this.width * 0.013);
-                drawText(ctx, 'Best: ' + formatTimeShort(prevBest), this.width / 2, this.height * 0.41 + timeSize * 1.6,
+                drawText(ctx, 'Best: ' + formatTimeShort(modeBestTime), this.width / 2, this.height * 0.41 + timeSize * 1.6,
                     refSize, COLORS.SUBTITLE_COLOR, 'center', 1);
             }
         }
 
-        // Encouraging message based on stars
         let msg;
-        if (stars === 3) msg = 'PERFECT! You\'re a typing hero!';
-        else if (stars === 2) msg = 'Super job! Almost perfect!';
+        if (modeStars === 3) msg = 'PERFECT! You\'re a typing hero!';
+        else if (modeStars === 2) msg = 'Super job! Almost perfect!';
         else msg = 'Great work! Keep going!';
 
         const msgSize = Math.max(10, this.width * 0.015);
@@ -1396,10 +1503,11 @@ const Game = {
         const btnH = Math.min(45, this.height * 0.06);
         const gap = btnH * 1.5;
 
-        const nextLabel = (Progression.currentLevel + 1 < LEVELS.length) ? 'Next Level' : 'World Map';
+        const nextLabel = (modeCurLevel + 1 < modeLevels.length) ? 'Next Level' : 'World Map';
         this._nextLevelBtn = drawButton(ctx, nextLabel, this.width / 2 - btnW / 2, this.height * 0.59, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
-        this._winMenuBtn = drawButton(ctx, 'Menu', this.width / 2 - btnW / 2, this.height * 0.59 + gap, btnW, btnH,
+        const backLabel = isKD ? 'World Map' : 'Menu';
+        this._winMenuBtn = drawButton(ctx, backLabel, this.width / 2 - btnW / 2, this.height * 0.59 + gap, btnW, btnH,
             this.input.mouseX, this.input.mouseY);
     },
 };

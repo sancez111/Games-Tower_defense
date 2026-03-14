@@ -15,7 +15,7 @@ A Minecraft-style tower defense web game teaching a 5-year-old to recognize lett
 - **User**: makes big decisions only, limited technical knowledge — keep language simple
 - **Always sync** on build status, progress, roadmap, and planned features at start of each chat
 
-## Codebase (4,941 lines across 11 JS files)
+## Codebase (~7,100+ lines across 11 JS files)
 
 ```
 /
@@ -29,13 +29,13 @@ A Minecraft-style tower defense web game teaching a 5-year-old to recognize lett
 │   ├── keyboard.js (232)   — On-screen QWERTY keyboard + SHIFT key, touch support, highlight states
 │   ├── powers.js (908)     — 6 super powers, pickup drops, inventory, activation effects, animations
 │   ├── progression.js (508) — 16 level definitions, 4 worlds, scoring, hearts, combos, timer, localStorage
-│   ├── engine.js (1430)    — Game loop, state machine, input handling, menu, world map, win/lose/pause screens
+│   ├── engine.js (~1550)   — Game loop, state machine, input handling, menu, world map, win/lose/pause screens, KD integration
 │   └── modes/
 │       ├── letterMarch.js (570) — Full Letter March mode: waves, HUD, decorations, world effects
-│       ├── keyboardDefense.js (10) — Placeholder
+│       ├── keyboardDefense.js (~2170) — Full Keyboard Defense mode: giant keyboard, falling enemies, finger guide, KD world map, KD progression
 │       └── towerStrike.js (10)    — Placeholder
 ├── assets/ (sprites/, sounds/, fonts/) — All empty, using code-drawn graphics
-├── ROADMAP.md, PHASE1.md, PHASE2.md, PHASE2B.md, PHASE2C.md, PHASE2D.md
+├── ROADMAP.md, PHASE1.md, PHASE2.md, PHASE2B.md, PHASE2C.md, PHASE2D.md, PHASE3.md
 └── .github/workflows/static.yml — GitHub Pages deployment
 ```
 
@@ -77,14 +77,36 @@ Pickups: glowing colored blocks with a letter — type letter to collect. Max 3 
 
 World map has rich biome backgrounds, animated effects, smooth zone transitions, scroll with arrows/drag.
 
+### Phase 3: Keyboard Defense Mode ✅
+Second game mode. The keyboard IS the battlefield. Enemy blocks spawn at top and fall toward specific keys on a giant on-screen keyboard.
+
+**Core Mechanics:**
+- Giant on-screen keyboard filling bottom 55% of screen (3 rows + space bar)
+- Enemies fall vertically toward their target key — tap/click the correct key to destroy
+- All 4 enemy types adapted for vertical falling (Walker, Sprinter, Tank, Swarm)
+- Punishment mechanic in World 3: wrong keys make ALL enemies jump closer
+- Semi-transparent finger guide overlay with color zones (pinky=red, ring=orange, middle=green, index=blue, thumb=purple), toggleable
+
+**12 Levels, 3 Worlds (separate from Letter March):**
+- **Keystone Village** (World 1, Lvl 1-4): Home row keys, peaceful sky theme
+- **Upper Highlands** (World 2, Lvl 5-8): Top row keys, mountain/snow theme
+- **Lower Depths** (World 3, Lvl 9-12): Bottom row keys, cave/lava theme, punishment mechanic
+
+**Key Systems:**
+- Separate progression & save (KDProgression, localStorage key `letterDefenders_kd_progress`)
+- Own KD world map (3 zones, Mario-style scrollable)
+- Power system reused with KD-specific unlock thresholds
+- Star ratings, best times, combo system, all independent from Letter March
+- Unlocks after beating Letter March Level 1
+
 ## Current Controls
 - **Letter keys**: Type to destroy matching enemies
 - **Shift + letter**: Destroy damaged tanks (second hit)
-- **Spacebar**: Activate selected power
+- **Spacebar**: Activate selected power (in KD: also mapped to space bar key tap)
 - **Right/Down Arrow**: Rotate power selection (also scrolls world map when on that screen)
 - **Left/Up Arrow**: Scroll world map left
 - **ESC**: Pause
-- **Touch**: On-screen keyboard + SHIFT key + USE/ROTATE buttons
+- **Touch**: On-screen keyboard + SHIFT key + USE/ROTATE buttons (LM mode) / Giant keyboard keys (KD mode)
 
 ## Key Technical Decisions Made
 - Grid uses off-screen canvas cache (rebuilds only on resize or level change)
@@ -98,20 +120,20 @@ World map has rich biome backgrounds, animated effects, smooth zone transitions,
 - Window blur resets all held keys
 - Powers check pickups BEFORE enemies in processInput
 - localStorage saves: `{ level_1: { stars: 3, bestTime: 83.45 } }` — backwards compatible with old `{ level_1: 3 }` format
+- KD mode uses `Game.currentMode` ('lm' or 'kd') to route input/rendering/state transitions
+- KD has its own enemy list (`fallingEnemies`), keyboard layout (`keyRects`), and progression system (`KDProgression`)
+- KD save keys use `kd_level_` prefix, completely separate from Letter March saves
 
 ## Known Issues / Notes
 - Level 14 3-star is very hard (short path, full mix) — by design
 - Arrow keys are dual-purpose: scroll world map on level select, rotate powers during gameplay
 - Dragon power won't appear until player reaches Level 12+
 - Lava Moat won't appear until Level 15+
-- `keyboardDefense.js` and `towerStrike.js` are still empty placeholders
+- `towerStrike.js` is still an empty placeholder
 
 ## Roadmap — What's Next
 
-### Phase 3: Keyboard Defense Mode ← NEXT
-Second game mode. Keyboard IS the battlefield. Letters attack by glowing on keys, player clicks/taps the correct key. Finger guide overlay, same wave/progression system, keyboard zones unlock progressively.
-
-### Phase 3.5: Gemini Graphics
+### Phase 3.5: Gemini Graphics ← NEXT
 Replace all colored-block placeholder graphics with proper Minecraft-style pixel art sprites generated via Gemini AI. Will need a Gemini prompt crafted in this project.
 
 ### Phase 4: Tower Strike Mode

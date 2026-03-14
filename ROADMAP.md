@@ -113,20 +113,28 @@
 
 ---
 
-## Phase 3: Keyboard Defense Mode ← CURRENT
+## Phase 3: Keyboard Defense Mode ← COMPLETE
 **Goal**: Second game mode focused on keyboard location learning
 
 **Deliverables**:
-- Full on-screen keyboard as the main play area
-- Letters "attack" by glowing/pulsing on the keyboard
-- Player must click/tap the correct glowing key to defend
-- Visual feedback: correct = green flash + block explosion, wrong = red shake
-- Finger guide overlay: shows which finger should press which key
-- Same wave and progression system as Letter March
-- Keyboard zones unlock progressively (home row → top row → bottom row)
-- Enemy types carry over from Letter March
+- Giant on-screen keyboard (bottom 55% of screen) as the battlefield
+- Enemy blocks fall from top toward specific keys — player taps/clicks correct key
+- All 4 enemy types adapted for vertical falling (Walker, Sprinter, Tank, Swarm)
+- Target key glow: pulsing golden outline on keys being attacked
+- Key press animation: green flash (correct) / red flash + shake (wrong)
+- Finger guide overlay with color zones (pinky=red, ring=orange, middle=green, index=blue, thumb=purple)
+- Toggleable finger guide with hand icon button (top-right)
+- 12 levels across 3 worlds with separate progression
+- World 1 (Keystone Village): Home row keys, Levels 1-4
+- World 2 (Upper Highlands): Top row keys, Levels 5-8
+- World 3 (Lower Depths): Bottom row keys with punishment mechanic, Levels 9-12
+- Punishment mechanic (World 3): Wrong key makes all falling enemies jump closer
+- Own KD world map (Mario-style, 3 zones, scrollable)
+- Separate save system (KDProgression, `letterDefenders_kd_progress`)
+- Powers reused with KD-specific unlock thresholds
+- Unlocks after beating Letter March Level 1
 
-**Status**: Not started
+**Status**: Complete
 
 ---
 
