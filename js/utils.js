@@ -2,6 +2,8 @@
 // Letter Defenders — Utility Functions
 // ============================================
 
+const GAME_VERSION = 'v0.3.0';
+
 // Minecraft-inspired color palette
 const COLORS = {
     // Grass

@@ -48,6 +48,11 @@ const Game = {
         nodePositions: [],
     },
 
+    // Reset button state
+    _resetBtn: null,
+    _resetConfirm: false,
+    _resetConfirmTimer: 0,
+
     init() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
@@ -308,7 +313,8 @@ const Game = {
 
         switch (this.state) {
             case STATES.MENU:
-                this.updateMenu();
+                this.updateMenu(dt);
+                FloatingTexts.update(dt);
                 break;
             case STATES.LEVEL_SELECT:
             case STATES.WORLD_MAP:
@@ -334,11 +340,42 @@ const Game = {
         }
     },
 
-    updateMenu() {
+    updateMenu(dt) {
         // Rebuild menu buttons each frame to check KD unlock status
         this.buildMenuButtons();
 
+        // Count down reset confirmation timer
+        if (this._resetConfirm) {
+            this._resetConfirmTimer -= dt;
+            if (this._resetConfirmTimer <= 0) {
+                this._resetConfirm = false;
+            }
+        }
+
         if (this.input.mouseClicked) {
+            // Check reset button first
+            if (this._resetBtn) {
+                const rb = this._resetBtn;
+                if (pointInRect(this.input.mouseX, this.input.mouseY, rb.x, rb.y, rb.w, rb.h)) {
+                    if (this._resetConfirm) {
+                        // Confirmed — clear all progress
+                        localStorage.removeItem('letterDefenders_progress');
+                        localStorage.removeItem('letterDefenders_kd_progress');
+                        FloatingTexts.spawn(this.width / 2, this.height / 2, 'Progress Reset!', '#FF4444', Math.max(14, this.width * 0.02));
+                        this._resetConfirm = false;
+                    } else {
+                        // First click — ask for confirmation
+                        this._resetConfirm = true;
+                        this._resetConfirmTimer = 3.0;
+                    }
+                    return;
+                } else if (this._resetConfirm) {
+                    // Clicked elsewhere — cancel confirmation
+                    this._resetConfirm = false;
+                }
+            }
+
+            // Check menu buttons
             for (let i = 0; i < this.menuButtons.length; i++) {
                 const btn = this.menuButtons[i];
                 if (btn.active && pointInRect(this.input.mouseX, this.input.mouseY, btn.x, btn.y, btn.w, btn.h)) {
@@ -595,6 +632,49 @@ const Game = {
             const label = btn.active ? btn.label : btn.label + ' (Locked)';
             drawText(ctx, label, btn.x + btn.w / 2, btn.y + btn.h / 2, btnFontSize, COLORS.WHITE, 'center', 1);
         }
+
+        // Version number — bottom-left, just above ground blocks
+        const blockSize2 = Math.max(30, this.width / 20);
+        const verSize = Math.max(8, this.width * 0.01);
+        ctx.font = verSize + 'px "Press Start 2P"';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(GAME_VERSION, blockSize2 * 0.3, this.height - blockSize2 * 2 - verSize * 0.5);
+
+        // Reset Progress button — bottom-right, just above ground blocks
+        const rbW = this.width * 0.15;
+        const rbH = this.height * 0.04;
+        const rbX = this.width - rbW - blockSize2 * 0.3;
+        const rbY = this.height - blockSize2 * 2 - rbH - verSize * 0.5;
+        this._resetBtn = { x: rbX, y: rbY, w: rbW, h: rbH };
+
+        const rbHover = pointInRect(this.input.mouseX, this.input.mouseY, rbX, rbY, rbW, rbH);
+
+        if (this._resetConfirm) {
+            // Confirm state — red
+            ctx.fillStyle = '#CC2222';
+            ctx.fillRect(rbX, rbY, rbW, rbH);
+            ctx.strokeStyle = '#FF4444';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(rbX, rbY, rbW, rbH);
+            const rbFont = Math.max(7, rbH * 0.4);
+            drawText(ctx, 'Tap to confirm!', rbX + rbW / 2, rbY + rbH / 2, rbFont, COLORS.WHITE, 'center', 1);
+        } else {
+            // Normal state — very subtle
+            ctx.fillStyle = rbHover ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)';
+            ctx.fillRect(rbX, rbY, rbW, rbH);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(rbX, rbY, rbW, rbH);
+            const rbFont = Math.max(7, rbH * 0.4);
+            ctx.globalAlpha = rbHover ? 0.7 : 0.5;
+            drawText(ctx, 'Reset Progress', rbX + rbW / 2, rbY + rbH / 2, rbFont, COLORS.WHITE, 'center', 1);
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Floating texts (for "Progress Reset!" feedback)
+        FloatingTexts.render(ctx);
     },
 
     renderClouds(ctx) {
